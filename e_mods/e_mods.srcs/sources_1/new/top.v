@@ -62,10 +62,10 @@ module top (
     parameter DBITS = 8;
     parameter UART_FRAME_SIZE = 4;
     wire uart_tx_trigger = btnC;
-    wire [UART_FRAME_SIZE*DBITS-1:0] uart_rx_out;
-    wire [UART_FRAME_SIZE*DBITS-1:0] uart_tx_in = {sw, sw, sw, sw};
+    wire [UART_FRAME_SIZE*DBITS-1:0] uart_rx;
+    wire [UART_FRAME_SIZE*DBITS-1:0] uart_tx;
     // Complete UART Core
-    uart_top 
+    uart_module 
         #(
             .FIFO_IN_SIZE(UART_FRAME_SIZE),
             .FIFO_OUT_SIZE(UART_FRAME_SIZE),
@@ -76,9 +76,9 @@ module top (
             .clk_100MHz(clk),
             .rx(rx), .tx(tx),
             // .rx_full(rx_full), .rx_empty(rx_empty), .rx_tick(rx_tick),
-            .rx_out(uart_rx_out),
+            .rx_out(uart_rx),
             .tx_trigger(uart_tx_trigger),
-            .tx_in(uart_tx_in)
+            .tx_in(uart_tx)
         );
     
     //// Group Task //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -87,6 +87,8 @@ module top (
     wire [6:0] master_seg;
     wire master_dp;
     wire [3:0] master_an;
+    wire master_uart_tx_trigger;
+    wire master_uart_tx;
     wire [15:0] master_oled_pixel_data;
 
     /*adaptor_task_group task_group(
@@ -105,6 +107,8 @@ module top (
     wire [6:0] slave_seg; 
     wire slave_dp;
     wire [3:0] slave_an;
+    wire slave_uart_tx_trigger;
+    wire slave_uart_tx;
     wire [15:0] slave_oled_pixel_data;
 
     /*adaptor_task_a task_a(
@@ -119,13 +123,15 @@ module top (
 
     //// Overall Control Logic ////////////////////////////////////////////////////////////////////////////////////
     // 4.E1
-    wire mode_master = sw[0];
-    wire mode_slave = sw[1];
+    wire enable_mode_master = sw[0];
+    wire enable_mode_slave = sw[1];
     
-    assign led = mode_master ? master_led : (mode_slave ? slave_led: 16'hFFFF);
-    assign seg = mode_master ? master_seg : (mode_slave ? slave_seg: 7'b1111111);
-    assign dp = mode_master ? master_dp : (mode_slave ? slave_dp : 1);
-    assign an = mode_master ? master_an : (mode_slave ? slave_an :  4'b1111);
-    assign oled_pixel_data = mode_master ? master_oled_pixel_data : (mode_slave ? slave_oled_pixel_data : 16'hFFFF);
+    assign led = enable_mode_master ? master_led : (enable_mode_slave ? slave_led: 16'hFFFF);
+    assign seg = enable_mode_master ? master_seg : (enable_mode_slave ? slave_seg: 7'b1111111);
+    assign dp = enable_mode_master ? master_dp : (enable_mode_slave ? slave_dp : 1);
+    assign an = enable_mode_master ? master_an : (enable_mode_slave ? slave_an :  4'b1111);
+    assign uart_tx_trigger = enable_mode_master ? master_uart_tx_trigger : (enable_mode_slave ? slave_uart_tx_trigger :  1'b0);
+    assign uart_tx = enable_mode_master ? master_uart_tx : (enable_mode_slave ? slave_uart_tx :  1'b0);
+    assign oled_pixel_data = enable_mode_master ? master_oled_pixel_data : (enable_mode_slave ? slave_oled_pixel_data : 16'hFFFF);
 
 endmodule
