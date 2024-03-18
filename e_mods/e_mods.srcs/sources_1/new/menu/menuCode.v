@@ -32,9 +32,10 @@ module menuCode(
     wire [12:0] pixel_index = oled_pixel_index;
     reg [15:0] pixel_data;
     assign oled_pixel_data = pixel_data;
-    
+    reg [24:0] char;
     always @ (*) begin
         pixel_data <= constant.COLOR_WHITE;
+        char <= is_letter(32);
     end
     
     
