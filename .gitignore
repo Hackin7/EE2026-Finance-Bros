@@ -6,3 +6,11 @@
 */*.jou
 */*.log
 */*.str
+fpga_tests/*/*.cache
+fpga_tests/*/*.runs
+fpga_tests/*/*.sim
+fpga_tests/*/*.hw
+fpga_tests/*/*.ip_user_files
+fpga_tests/*/*.jou
+fpga_tests/*/*.log
+fpga_tests/*/*.str
