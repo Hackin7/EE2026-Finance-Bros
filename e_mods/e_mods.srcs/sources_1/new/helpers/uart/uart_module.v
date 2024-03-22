@@ -179,13 +179,13 @@ module uart_module
          );
     
     always @(posedge clk_100MHz) begin
-         if (tx_trigger) begin
-            count <= FIFO_OUT_SIZE; // Edge
+        if (tx_trigger) begin
+           count <= FIFO_OUT_SIZE; // Edge
         // Debug this part
-         end else if (tx_done_tick != tx_done_tick_latch && tx_done_tick && count != 0) begin
-            count <= count - 1;
-         end
-         tx_done_tick_latch <= tx_done_tick;
+        end else if (tx_done_tick != tx_done_tick_latch && tx_done_tick && count != 0) begin
+           count <= count - 1;
+        end
+        tx_done_tick_latch <= tx_done_tick;
     end
     //////////////////////////////////////////////
 endmodule
