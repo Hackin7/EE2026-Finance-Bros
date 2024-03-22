@@ -2,69 +2,22 @@
 
 /*
 To Test
-1. [x] former
+1. former
 2. parser - buggy
 3. sending FSM
 4. Receiving FSM
-*/
 
-// Working as of 22/3/2024
-module trade_packet_former#(
-    parameter DBITS=8, UART_FRAME_SIZE=8
-)(
-    input [7:0] type,
-    input [7:0] account_id,
-    input [7:0] stock_id,
-    input [7:0] qty,
-    input [7:0] price,
-    output  [UART_FRAME_SIZE*DBITS-1:0] uart_tx
-);
-    parameter TYPE_INVALID = 0;
-    parameter TYPE_BUY = 1;
-    parameter TYPE_SELL = 2;
-    assign uart_tx = {"[", type, account_id, stock_id, qty, price, 8'b0, "]"};
-endmodule
-
-module trade_packet_parser#(
-    parameter DBITS=8, UART_FRAME_SIZE=8
-)(
-    input  [UART_FRAME_SIZE*DBITS-1:0] uart_rx,
-    output [7:0] type, // Not working properly
-    output [7:0] account_id,
-    output [7:0] stock_id,
-    output [7:0] qty,
-    output [7:0] price
-);
-
-    // Parameters for stock 
-    parameter TYPE_INVALID = 8'd0;
-    parameter TYPE_OK = 8'd1;
-    parameter TYPE_FAIL = 8'd2;
-
-    wire [7:0] char_first = uart_rx[63:56];
-    wire [7:0] char_last = uart_rx[7:0];
-    wire [7:0] char_type = uart_rx[55:48];
-    assign type = (char_first == "[" && char_last == "]") ? char_type : 8'b0;
-    
-    assign account_id = uart_rx[DBITS*6-1:DBITS*5];
-    assign stock_id = uart_rx[DBITS*5-1:DBITS*4];
-    assign qty = uart_rx[DBITS*4-1:DBITS*3];
-    assign price = uart_rx[DBITS*3-1:DBITS*2];
-endmodule
-
-
-/*
 States
 1. Send information
 2. Wait for feedback
 3. Parse Feedback
     1. If timeout -> continue
-    2. else, remove from buffer
+    2. else, halt
 
 */
 
 module trade_module_slave #(
-    parameter DBITS=8, UART_FRAME_SIZE=8, RX_TIMEOUT=100_000_000 // 1s
+    parameter DBITS=8, UART_FRAME_SIZE=8, RX_DEBOUNCE=1, RX_TIMEOUT=100_000_000 // 1s
 )(
     // General
     input clk_100MHz,               // FPGA clock
@@ -165,10 +118,10 @@ module trade_module_slave #(
         begin
             if (tx_type == former.TYPE_INVALID) begin
                 // fsm_timer <= 0; // doesn't matter
-            end else if (packet_type == parser.TYPE_OK) begin
+            /*end else if (packet_type == parser.TYPE_OK) begin // Catch any sudden receive - will ignore for now
                 // clear buffer for 1 cycle
                 send_status <= STATUS_OK;
-                fsm_change_state(S2);
+                fsm_change_state(S2); */
             end else begin
                 uart_tx_trigger <= 1; // Trigger on for 1 clock cycle
                 fsm_change_state(S1);
@@ -197,7 +150,7 @@ module trade_module_slave #(
     
     task fsm_uart_receive();
     begin
-        if (tx_type == former.TYPE_INVALID) begin
+        if (tx_type == former.TYPE_INVALID || fsm_timer <= RX_DEBOUNCE) begin
             // do nothing, ignore everything because mode disabled
         end else if (packet_type == parser.TYPE_INVALID) begin
             // do nothing
