@@ -10,10 +10,11 @@ module test_trade_module_slave();
 
     trade_packet_former trade_packet();
     trade_packet_parser trade_packet_recv();
-    reg [UART_FRAME_SIZE*DBITS-1:0] uart_rx = {"A", 1, 2, 3, 4, 5, 8'b0, "]"};
+    reg [UART_FRAME_SIZE*DBITS-1:0] uart_rx = {"A", "A", "A", "A", "A", "A", "A", "]"};
     wire [UART_FRAME_SIZE*DBITS-1:0] uart_tx;
     wire uart_tx_trigger;
     
+    wire [7:0] send_status;
     wire [7:0] fsm_state;
     wire [32-1:0] fsm_timer;
 
@@ -33,7 +34,7 @@ module test_trade_module_slave();
         .tx_stock_id(1),
         .tx_qty(2),
         .tx_price(3),
-        .tx_buffer_ctrl_store(tx_buffer_ctrl_store),
+        .send_status(send_status),
 
         // Debugging Ports
         //.sw(sw), .led(led)
@@ -42,6 +43,7 @@ module test_trade_module_slave();
     
     // Stimuli
     initial begin
+       uart_rx = {"A", "A", "A", "A", "A", "A", "A", "]"};
 	   clk = 0; rst = 1; 
 	   #10 clk = 0; #10 clk = 1;
 	   #10 clk = 0; #10 clk = 1;
@@ -59,11 +61,12 @@ module test_trade_module_slave();
        #10 clk = 0; #10 clk = 1;
        #10 clk = 0; #10 clk = 1;
        #10 clk = 0; #10 clk = 1;
-	   uart_rx = {"[", trade_packet_recv.TYPE_OK, 2, 3, 4, 5, 8'b0, "]"};
+	   uart_rx = {"[", trade_packet_recv.TYPE_OK, "[", "A", "A", "A", "A", "]"}; //  trade_packet_recv.TYPE_OK
 	   rst = 0; 
 	   #10 clk = 0; #10 clk = 1;
 	   #10 clk = 0; #10 clk = 1;
 	   #10 clk = 0; #10 clk = 1;
+       // uart_rx = {"[", trade_packet_recv.TYPE_OK, "A", "A", "A", "A", "A", "]"}; //  trade_packet_recv.TYPE_OK
 	   #10 clk = 0; #10 clk = 1; 
        #10 clk = 0; #10 clk = 1;
        #10 clk = 0; #10 clk = 1;

@@ -37,9 +37,9 @@ module trade_packet_parser#(
 );
 
     // Parameters for stock 
-    parameter TYPE_INVALID = 0;
-    parameter TYPE_OK = 1;
-    parameter TYPE_FAIL = 2;
+    parameter TYPE_INVALID = 8'd0;
+    parameter TYPE_OK = 8'd1;
+    parameter TYPE_FAIL = 8'd2;
 
     wire [7:0] char_first = uart_rx[63:56];
     wire [7:0] char_last = uart_rx[7:0];
@@ -79,7 +79,8 @@ module trade_module_slave #(
     input [7:0] tx_stock_id,
     input [7:0] tx_qty,
     input [7:0] tx_price,
-    input tx_buffer_ctrl_store,
+    input trigger,
+    output reg [7:0] send_status=0,
 
     // Debugging //////////////////////////////////////////////////////////
     // Control
@@ -89,21 +90,18 @@ module trade_module_slave #(
 );
 
     /* State Machine ----------------------------------------------------------*/
-    parameter S0 = 8'b0;
-    parameter S1 = 8'b1;
+    parameter S0 = 8'd0;
+    parameter S1 = 8'd1;
+    parameter S2 = 8'd2;
+
+    parameter STATUS_PROCESSING = 8'd0;
+    parameter STATUS_OK = 8'd1;
+    parameter STATUS_FAIL = 8'd2;
     //reg [7:0] fsm_state = 0;
-    reg [7:0] next_state;
     //reg [32-1:0] fsm_timer = 0;
 
     // FSM Control Logic
-    always @(*) begin
-        case (fsm_state)
-            S0: next_state = S1; // Sending Data
-            S1: next_state = S0; // Receiving Logic
-            default: next_state = S0;
-        endcase
-    end
-    task fsm_change_state();
+    task fsm_change_state(input [7:0] next_state);
         begin
             fsm_state <= next_state;
             fsm_timer <= 0;
@@ -118,6 +116,10 @@ module trade_module_slave #(
         end else if (fsm_state == S1) begin
             uart_tx_trigger <= 0; // DisableTrigger
             fsm_uart_receive();
+        end else if (fsm_state == S2) begin
+            fsm_uart_wait();
+        end else begin
+            fsm_change_state(S0);
         end
     end
 
@@ -163,9 +165,13 @@ module trade_module_slave #(
         begin
             if (tx_type == former.TYPE_INVALID) begin
                 // fsm_timer <= 0; // doesn't matter
+            end else if (packet_type == parser.TYPE_OK) begin
+                // clear buffer for 1 cycle
+                send_status <= STATUS_OK;
+                fsm_change_state(S2);
             end else begin
                 uart_tx_trigger <= 1; // Trigger on for 1 clock cycle
-                fsm_change_state();
+                fsm_change_state(S1);
             end
         end
     endtask
@@ -191,28 +197,31 @@ module trade_module_slave #(
     
     task fsm_uart_receive();
     begin
-        if (fsm_timer >= RX_TIMEOUT) begin
-            fsm_change_state();
-        end/*
-        if (tx_buffer_type == former.TYPE_INVALID) begin
+        if (tx_type == former.TYPE_INVALID) begin
             // do nothing, ignore everything because mode disabled
         end else if (packet_type == parser.TYPE_INVALID) begin
             // do nothing
             if (fsm_timer >= RX_TIMEOUT) begin
-                fsm_change_state();
+                fsm_change_state(S0);
             end
         end else if (packet_type == parser.TYPE_OK) begin
             // clear buffer for 1 cycle
-            if (tx_buffer_ctrl_clear == 1) begin
-                tx_buffer_ctrl_clear <= 1;
-            end else if (tx_buffer_ctrl_clear == 1) begin
-                tx_buffer_ctrl_clear <= 0;
-                fsm_change_state();
-            end
+            send_status <= STATUS_OK;
+            fsm_change_state(S2);
         end else if (packet_type == parser.TYPE_FAIL) begin
             // do nothing
-            fsm_change_state();
-        end*/
+            send_status <= STATUS_FAIL;
+            fsm_change_state(S2);
+        end
+    end
+    endtask
+
+    task fsm_uart_wait();
+    begin
+        if (trigger) begin
+            send_status <= STATUS_PROCESSING;
+            fsm_change_state(S0);
+        end
     end
     endtask
     
