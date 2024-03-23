@@ -18,7 +18,7 @@ module test_trade_module_master();
 
     reg trigger = 1;
     
-    wire [95:0]   debug_accounts;
+    wire [167:0]   debug_accounts;
     wire [95:0]   debug_stocks;
     wire [32-1:0] debug_admin_fees;
     wire [32-1:0] debug_general;
@@ -64,7 +64,7 @@ module test_trade_module_master();
         trade_packet_recv.TYPE_BUY, 
         8'd1, 
         8'd0, 
-        8'd2, // qty 
+        8'd0, // qty 
         8'd15, // price 14, 
          "A", "]"}; //  trade_packet_recv.TYPE_OK
 	   rst = 0; 
@@ -84,8 +84,8 @@ module test_trade_module_master();
 	   uart_rx = {"[", 
         trade_packet_recv.TYPE_SELL, 
         8'd1, 
-        8'd1, 
-        8'd2, // qty 
+        8'd0, 
+        8'd1, // qty 
         8'd15, // price 14, 
          "A", "]"
        }; //  trade_packet_recv.TYPE_OK

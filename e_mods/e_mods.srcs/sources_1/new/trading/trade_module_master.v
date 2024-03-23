@@ -7,7 +7,7 @@ This module handles the market code and all the inputs and outputs
 
 module trade_module_master #(
     parameter DBITS=8, UART_FRAME_SIZE=8, 
-    INITIAL_ACCOUNTS='hff_ff_ff_ff___01_00_01_ff___01_00_00_ff,
+    INITIAL_ACCOUNTS='hff_ff_ff_00ffffff___01_00_01_00ffffff___01_00_00_00ffffff,
     INITIAL_STOCKS='h00_ff__00_ff__00_0f
 )(
     // Control
@@ -18,45 +18,51 @@ module trade_module_master #(
     output reg uart_tx_trigger=0,
 
     // Debugging //////////////////////////////////////////////////////////
-    output [95:0] debug_accounts,
+    output [167:0] debug_accounts,
     output [95:0] debug_stocks,
     output [31:0] debug_admin_fees, 
     output [31:0] debug_general
 );
 
     parameter MOVEMENT_THRSHOLD = 2;//0;
-
     /* --- Data Structures -------------------------------------------------------------- */
-    parameter NO_ACCOUNTS = 3;
-    parameter BITWIDTH_ACCT = 8*4; // 0-255 x 4
-    reg [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] accounts = INITIAL_ACCOUNTS;
-    //~'b0; // Balances
-
     parameter NO_STOCKS = 3;
-    parameter BITWIDTH_STOCKS = 8*2; // 255
+    parameter BITWIDTH_NO_STOCKS = 2;
+    parameter BITWIDTH_STOCKS_PRICE = 8;
+    parameter BITWIDTH_STOCKS_THRESHOLD = 8;
+    parameter BITWIDTH_STOCKS = BITWIDTH_STOCKS_PRICE + BITWIDTH_STOCKS_THRESHOLD; // 255
     reg [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] stocks = INITIAL_STOCKS;
-    //~'b0; // prices, threshold
+
+    parameter NO_ACCOUNTS = 3;
+    parameter BITWIDTH_NO_ACCOUNTS = 2;
+    parameter BITWIDTH_ACCT_BALANCE = 32;
+    parameter BITWIDTH_ACCT_STOCKS = 8;
+    parameter BITWIDTH_ACCT = BITWIDTH_ACCT_BALANCE + BITWIDTH_ACCT_STOCKS*NO_STOCKS;
+    reg [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] accounts = INITIAL_ACCOUNTS;
 
     parameter BITWIDTH_ADMIN_FEES = 32;
     reg [BITWIDTH_ADMIN_FEES - 1 : 0] admin_fees = 'b0;
-
     /* --- Stock Prices & Threshold ----------------------------------------------*/
     
-    function [7:0] stock_get_price(input [2:0] index);
+    function [BITWIDTH_STOCKS_PRICE-1:0] stock_get_price(
+        input [BITWIDTH_NO_STOCKS-1:0] index
+    );
         begin
             stock_get_price = stocks >> (BITWIDTH_STOCKS*index);
         end
     endfunction
     
-    function [7:0] stock_get_threshold(input [2:0] index);
+    function [BITWIDTH_STOCKS_THRESHOLD-1:0] stock_get_threshold(
+        input [BITWIDTH_NO_STOCKS-1:0] index
+    );
         begin
             stock_get_threshold = stocks >> (BITWIDTH_STOCKS*index + 8);
         end
     endfunction
 
     function [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] stock_update_price(
-        input [2:0] index, 
-        input [7:0] new_value,
+        input [BITWIDTH_NO_STOCKS-1:0] index, 
+        input [BITWIDTH_STOCKS_PRICE-1:0] new_value,
         input [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] new_stocks
     ); begin
         // Bitmask = (((8'hff) << (BITWIDTH_ACCT*index)));
@@ -70,59 +76,66 @@ module trade_module_master #(
     endfunction
 
     function [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] stock_update_threshold(
-        input [2:0] index, 
-        input [7:0] new_value,
+        input [BITWIDTH_NO_STOCKS-1:0] index, 
+        input [BITWIDTH_STOCKS_THRESHOLD-1:0] new_value,
         input [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] new_stocks
     ); begin
         // Bitmask = (((8'hff) << (BITWIDTH_ACCT*index)));
         stock_update_threshold =  (
             (
                 new_stocks &    
-                ~((8'hff) << (BITWIDTH_STOCKS*index+8))
-            ) | (new_value << (BITWIDTH_STOCKS*index+8))
+                ~((8'hff) << (BITWIDTH_STOCKS*index + BITWIDTH_STOCKS_PRICE))
+            ) | (new_value << (BITWIDTH_STOCKS*index + BITWIDTH_STOCKS_PRICE))
         );
     end
     endfunction
 
     /* --- Account ----------------------------------------------*/
-    function [7:0] account_get_balance(input [2:0] index);
+    function [BITWIDTH_ACCT_BALANCE-1:0] account_get_balance(
+        input [BITWIDTH_NO_ACCOUNTS-1:0] index
+    );
         begin
             account_get_balance = accounts >> (BITWIDTH_ACCT*index);
         end
     endfunction
 
-    function [7:0] account_get_stock(input [2:0] index, input [2:0] stock_index);
+    function [BITWIDTH_ACCT_STOCKS-1:0] account_get_stock(
+        input [BITWIDTH_NO_ACCOUNTS-1:0] index, 
+        input [BITWIDTH_NO_STOCKS-1:0] stock_index
+    );
         begin
-            account_get_stock = accounts >> (BITWIDTH_ACCT*index + (stock_index + 1 * 8));
+            account_get_stock = accounts >> (
+                BITWIDTH_ACCT*index + BITWIDTH_ACCT_BALANCE + (stock_index * BITWIDTH_ACCT_STOCKS)
+            );
         end
     endfunction
     
     function [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] account_update_balance(
-        input [2:0] index, 
-        input [7:0] new_value,
+        input [BITWIDTH_NO_ACCOUNTS-1:0] index, 
+        input [BITWIDTH_ACCT_BALANCE-1:0] new_value,
         input [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] new_accounts
     ); begin
         // Bitmask = (((8'hff) << (BITWIDTH_ACCT*index)));
         account_update_balance =  (
             (
                 new_accounts &    
-                ~((8'hff) << (BITWIDTH_ACCT*index))
+                ~((32'hffffffff) << (BITWIDTH_ACCT*index))
             ) | (new_value << (BITWIDTH_ACCT*index))
         );
     end
     endfunction
 
     function [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] account_update_stock(
-        input [2:0] index, 
-        input [2:0] stock_index,
-        input [7:0] new_value,
+        input [BITWIDTH_NO_ACCOUNTS-1:0] index, 
+        input [BITWIDTH_NO_STOCKS-1:0] stock_index,
+        input [BITWIDTH_ACCT_STOCKS-1:0] new_value,
         input [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] new_accounts
     ); begin
         account_update_stock =  (
             (
                 new_accounts &    
-                ~((8'hff) << (BITWIDTH_ACCT*index + (stock_index + 1 * 8)) )
-            ) | (new_value << (BITWIDTH_ACCT*index + (stock_index + 1 * 8)) )
+                ~((8'hff) << (BITWIDTH_ACCT*index + BITWIDTH_ACCT_BALANCE + (stock_index * BITWIDTH_ACCT_STOCKS)) )
+            ) | (new_value << (BITWIDTH_ACCT*index + BITWIDTH_ACCT_BALANCE + (stock_index * BITWIDTH_ACCT_STOCKS)) )
         );
     end
     endfunction
@@ -194,8 +207,8 @@ module trade_module_master #(
 
     /* --- Approval Logic --------------------------------------------------------------- */
     
-    wire [BITWIDTH_ACCT:0]   curr_account_balance   = account_get_balance(slave_account_id);
-    wire [7:0]               curr_account_stock_qty = account_get_stock(slave_account_id, slave_stock_id);
+    wire [BITWIDTH_ACCT_BALANCE:0]   curr_account_balance   = account_get_balance(slave_account_id);
+    wire [BITWIDTH_ACCT_STOCKS:0]    curr_account_stock_qty = account_get_stock(slave_account_id, slave_stock_id);
     wire [BITWIDTH_STOCKS:0] curr_stock_price       = stock_get_price(slave_stock_id);    
     wire [31:0] amount_paid = slave_price * slave_qty;      // amount_paid  = curr_stock.price * slave_qty
     wire price_match_buy = curr_stock_price <= slave_price; // price_match  = curr_stock.price <= slave_price
@@ -270,7 +283,10 @@ module trade_module_master #(
 
     /* --- Market Movement -------------------------------------------------------------- */
     
-    task market_movement_one(input [2:0] stock_id, input signed [7:0] threshold);
+    task market_movement_one(
+        input [BITWIDTH_NO_STOCKS-1:0] stock_id, 
+        input signed [BITWIDTH_STOCKS_THRESHOLD:0] threshold
+    );
     begin
         if (threshold <= -MOVEMENT_THRSHOLD) begin
             // update price & threshold
