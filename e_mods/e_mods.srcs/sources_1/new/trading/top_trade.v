@@ -57,7 +57,8 @@ module top_trade (
 
     wire master_uart_tx_trigger;
     wire master_uart_tx;
-    wire [15:0] master_oled_pixel_data;
+    wire trigger;
+    wire [7:0] send_status;
     trade_packet_former trade_packet();
     trade_module_slave 
         #(
@@ -74,10 +75,10 @@ module top_trade (
         .tx_stock_id(1),
         .tx_qty(2),
         .tx_price(3),
-        .tx_buffer_ctrl_store(tx_buffer_ctrl_store),
+        .trigger(trigger),
+        .send_status(send_status),
 
         // Debugging Ports
         .sw(sw), .led(led)
     );
-    assign tx_buffer_ctrl_store = btnC;
 endmodule
