@@ -39,7 +39,7 @@ module trade_packet_parser#(
     wire [7:0] char_first = uart_rx[63:56];
     wire [7:0] char_last = uart_rx[7:0];
     wire [7:0] char_type = uart_rx[55:48];
-    assign type = (char_first == "[" && char_last == "]") ? char_type : 8'b0;
+    assign type = (char_first == "[" && char_last == "]") ? char_type : TYPE_INVALID;
     
     assign account_id = uart_rx[DBITS*6-1:DBITS*5];
     assign stock_id = uart_rx[DBITS*5-1:DBITS*4];

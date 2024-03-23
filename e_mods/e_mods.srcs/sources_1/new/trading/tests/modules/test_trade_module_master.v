@@ -8,6 +8,7 @@ module test_trade_module_master();
     // Simulation Outputs
     parameter DBITS = 8;
     parameter UART_FRAME_SIZE = 8;
+    parameter BOF_PAYLOAD = {"A", "B", "C", "D", "E", "F", "G", "H"};
 
     trade_packet_former trade_packet();
     trade_packet_parser trade_packet_recv();
@@ -38,7 +39,7 @@ module test_trade_module_master();
 
     initial begin
 
-       uart_rx = {"A", "A", "A", "A", "A", "A", "A", "]"};
+       uart_rx = BOF_PAYLOAD;
 	   clk = 0; rst = 1; 
        trigger = 1;
 	   #10 clk = 0; #10 clk = 1;
@@ -62,22 +63,30 @@ module test_trade_module_master();
         8'd1, 
         8'd0, 
         8'd1, // qty 
-        8'd14, // price
+        8'd14, // price 14, 
          "A", "]"}; //  trade_packet_recv.TYPE_OK
 	   rst = 0; 
 	   #10 clk = 0; #10 clk = 1;
 	   #10 clk = 0; #10 clk = 1;
 	   #10 clk = 0; #10 clk = 1;
-       // uart_rx = {"[", trade_packet_recv.TYPE_OK, "A", "A", "A", "A", "A", "]"}; //  trade_packet_recv.TYPE_OK
-	   #10 clk = 0; #10 clk = 1; 
+       #10 clk = 0; #10 clk = 1; 
        #10 clk = 0; #10 clk = 1;
+
+       uart_rx = BOF_PAYLOAD;
        #10 clk = 0; #10 clk = 1;
        #10 clk = 0; #10 clk = 1;
        #10 clk = 0; #10 clk = 1; 
        #10 clk = 0; #10 clk = 1;
+       
+	   uart_rx = {"[", 
+        trade_packet_recv.TYPE_BUY, 
+        8'd1, 
+        8'd0, 
+        8'd1, // qty 
+        8'd14, // price 14, 
+         "A", "]"}; //  trade_packet_recv.TYPE_OK
        #10 clk = 0; #10 clk = 1;
        #10 clk = 0; #10 clk = 1;
-       trigger = 1;
        #10 clk = 0; #10 clk = 1; 
        #10 clk = 0; #10 clk = 1; 
        #10 clk = 0; #10 clk = 1;

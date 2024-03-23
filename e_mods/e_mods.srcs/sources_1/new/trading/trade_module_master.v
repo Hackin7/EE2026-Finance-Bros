@@ -6,7 +6,9 @@ This module handles the market code and all the inputs and outputs
 */
 
 module trade_module_master #(
-    parameter DBITS=8, UART_FRAME_SIZE=8
+    parameter DBITS=8, UART_FRAME_SIZE=8, 
+    INITIAL_ACCOUNTS='hff_ff_ff_ff___01_00_01_ff___01_00_00_ff,
+    INITIAL_STOCKS='h00_ff__00_ff__00_0f
 )(
     // Control
     input reset, input clk_100MHz,
@@ -21,17 +23,17 @@ module trade_module_master #(
     output [31:0] debug_admin_fees
 );
 
-    parameter MOVEMENT_THRSHOLD = 1;//0;
+    parameter MOVEMENT_THRSHOLD = 2;//0;
 
     /* --- Data Structures -------------------------------------------------------------- */
     parameter NO_ACCOUNTS = 3;
     parameter BITWIDTH_ACCT = 8*4; // 0-255 x 4
-    reg [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] accounts = 'hff_ff_ff_ff___01_00_01_ff___01_00_00_ff;
+    reg [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] accounts = INITIAL_ACCOUNTS;
     //~'b0; // Balances
 
     parameter NO_STOCKS = 3;
     parameter BITWIDTH_STOCKS = 8*2; // 255
-    reg [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] stocks = 'hff_ff__ff_ff__ff_0f;
+    reg [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] stocks = INITIAL_STOCKS;
     //~'b0; // prices, threshold
 
     parameter BITWIDTH_ADMIN_FEES = 32;
@@ -54,12 +56,12 @@ module trade_module_master #(
     function [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] stock_update_price(
         input [2:0] index, 
         input [7:0] new_value,
-        input [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] new_stocks_prices
+        input [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] new_stocks
     ); begin
         // Bitmask = (((8'hff) << (BITWIDTH_ACCT*index)));
         stock_update_price =  (
             (
-                new_stocks_prices &    
+                new_stocks &    
                 ~((8'hff) << (BITWIDTH_STOCKS*index))
             ) | (new_value << (BITWIDTH_STOCKS*index))
         );
@@ -69,12 +71,12 @@ module trade_module_master #(
     function [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] stock_update_threshold(
         input [2:0] index, 
         input [7:0] new_value,
-        input [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] new_stocks_prices
+        input [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] new_stocks
     ); begin
         // Bitmask = (((8'hff) << (BITWIDTH_ACCT*index)));
         stock_update_threshold =  (
             (
-                new_stocks_prices &    
+                new_stocks &    
                 ~((8'hff) << (BITWIDTH_STOCKS*index+8))
             ) | (new_value << (BITWIDTH_STOCKS*index+8))
         );
@@ -164,16 +166,22 @@ module trade_module_master #(
         .price(slave_price)
     );
     
+    reg [UART_FRAME_SIZE*DBITS-1:0] prev_processed_uart_rx=0;
     task fsm_uart_receive();
     begin
-        if (slave_type == parser.TYPE_INVALID) begin
+        if (prev_processed_uart_rx == uart_rx) begin
+            // do nothing - Don't process a request twice in a row
+        end else if (slave_type == parser.TYPE_INVALID) begin
             // do nothing
+            prev_processed_uart_rx <= 0; // Clear processed
         end else if (slave_type == parser.TYPE_BUY) begin
             // process buy request
             trade_approve_buy();
+            prev_processed_uart_rx <= uart_rx;
         end else if (slave_type == parser.TYPE_SELL) begin
             // do nothing
         end
+        
     end
     endtask
 
@@ -217,17 +225,15 @@ module trade_module_master #(
             master_type <= former.TYPE_FAIL;
             uart_tx_trigger <= 1;
         end
-        /*
+        
         // Market Movement -----------------------------------
         if (can_buy) begin
             if (slave_price < curr_stock_price) begin
-                update_entry(slave_stock_id, stocks_threshold, get_entry(slave_stock_id, stocks_threshold)-1 );
+                market_movement_one(slave_stock_id, stock_get_threshold(slave_stock_id)-1);
             end else if (slave_price >= curr_stock_price) begin
-                update_entry(slave_stock_id, stocks_threshold, get_entry(slave_stock_id, stocks_threshold)+1 );
+                market_movement_one(slave_stock_id, stock_get_threshold(slave_stock_id)+1);
             end
         end
-        market_movement();
-        */
     end
     endtask
     
@@ -259,19 +265,28 @@ module trade_module_master #(
     endtask
     */
     /* --- Market Movement -------------------------------------------------------------- */
-    /*
-    task market_movement_one(input [2:0] stock_id);
+    
+    task market_movement_one(input [2:0] stock_id, input signed [7:0] threshold);
     begin
-        if (get_entry(stock_id, stocks_threshold) <= -MOVEMENT_THRSHOLD) begin
-            update_entry(stock_id, stocks, get_entry(stock_id, stocks)-1);
-            update_entry(stock_id, stocks_threshold, 0 );
-        end else if (get_entry(stock_id, stocks_threshold) >= MOVEMENT_THRSHOLD) begin
-            update_entry(stock_id, stocks, get_entry(stock_id, stocks)+1);
-            update_entry(stock_id, stocks_threshold, 0 );
-        end 
+        if (threshold <= -MOVEMENT_THRSHOLD) begin
+            // update price & threshold
+            stocks <= (
+                stock_update_price(stock_id, stock_get_price(stock_id)-1, 
+                stock_update_threshold(stock_id, 0, 
+            stocks)));
+        end else if (threshold >= MOVEMENT_THRSHOLD) begin
+            stocks <= (
+                stock_update_price(stock_id, stock_get_price(stock_id)+1, 
+                stock_update_threshold(stock_id, 0, 
+            stocks)));
+        end else begin
+            stocks <= stock_update_threshold(slave_stock_id, threshold, stocks);
+        end
     end
     endtask
 
+    /*
+    // unnecessary - can just update for the specific one
     task market_movement();
     begin
         // Hardcode for 3 blocks
