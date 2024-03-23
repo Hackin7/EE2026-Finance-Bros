@@ -64,7 +64,7 @@ module test_trade_module_master();
         trade_packet_recv.TYPE_BUY, 
         8'd1, 
         8'd0, 
-        8'd1, // qty 
+        8'd2, // qty 
         8'd15, // price 14, 
          "A", "]"}; //  trade_packet_recv.TYPE_OK
 	   rst = 0; 
@@ -82,12 +82,13 @@ module test_trade_module_master();
        #10 clk = 0; #10 clk = 1;
        
 	   uart_rx = {"[", 
-        trade_packet_recv.TYPE_BUY, 
+        trade_packet_recv.TYPE_SELL, 
         8'd1, 
-        8'd0, 
-        8'd1, // qty 
+        8'd1, 
+        8'd2, // qty 
         8'd15, // price 14, 
-         "A", "]"}; //  trade_packet_recv.TYPE_OK
+         "A", "]"
+       }; //  trade_packet_recv.TYPE_OK
        #10 clk = 0; #10 clk = 1;
        #10 clk = 0; #10 clk = 1;
        #10 clk = 0; #10 clk = 1; 

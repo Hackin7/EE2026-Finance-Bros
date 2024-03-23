@@ -174,16 +174,15 @@ module trade_module_master #(
         if (prev_processed_uart_rx == uart_rx) begin
             // do nothing - Don't process a request twice in a row
         end else if (slave_type == parser.TYPE_INVALID) begin
-            // do nothing
             prev_processed_uart_rx <= 0; // Clear processed
         end else if (slave_type == parser.TYPE_BUY) begin
-            // process buy request
             trade_approve_buy();
             prev_processed_uart_rx <= uart_rx;
         end else if (slave_type == parser.TYPE_SELL) begin
-            // do nothing
+            trade_approve_sell();
+            prev_processed_uart_rx <= uart_rx;
         end else begin
-            // do nothing
+            prev_processed_uart_rx <= 0; // Clear processed
         end
     end
     endtask
@@ -211,7 +210,7 @@ module trade_module_master #(
             // Math -----------------------------------------
             accounts <= (
                 account_update_balance(slave_account_id, curr_account_balance - (slave_price*slave_qty),
-                account_update_stock( slave_account_id, slave_stock_id, curr_account_stock_qty + 1,
+                account_update_stock( slave_account_id, slave_stock_id, curr_account_stock_qty + slave_qty,
                 accounts))
             );
             admin_fees <= admin_fees + (slave_price - curr_stock_price) * slave_qty;
@@ -237,33 +236,38 @@ module trade_module_master #(
     end
     endtask
     
-    /*
     task trade_approve_sell();
     begin
         if (can_sell && price_match_sell) begin
             // Math -----------------------------------------
-            update_account(slave_account_id, 0, amount_paid);
-            update_account(slave_account_id, slave_stock_id+1, get_account(slave_account_id, slave_stock_id+1) + slave_qty);
-            admin_fees <= admin_fees + (slave_price - curr_stock_price) * slave_qty
+            accounts <= (
+                account_update_balance(slave_account_id, curr_account_balance + (slave_price*slave_qty),
+                account_update_stock( slave_account_id, slave_stock_id, curr_account_stock_qty - slave_qty,
+                accounts))
+            );
+            admin_fees <= admin_fees + (curr_stock_price - slave_price) * slave_qty;
             // Comms ----------------------------------------
             // Send OK Packet
+            master_type <= former.TYPE_OK;
+            uart_tx_trigger <= 1;
         end else begin
             // Comms ----------------------------------------
             // Send Fail Packet
+            master_type <= former.TYPE_FAIL;
+            uart_tx_trigger <= 1;
         end
-
+        
         // Market Movement -----------------------------------
-        if (can_buy) begin
-            if (slave_price > curr_stock_price) begin
-                update_entry(slave_stock_id, stocks_threshold, get_entry(slave_stock_id, stocks_threshold)-1 );
-            end else if (slave_price <= curr_stock_price) begin
-                update_entry(slave_stock_id, stocks_threshold, get_entry(slave_stock_id, stocks_threshold)+1 );
+        if (can_sell) begin
+            if (slave_price <= curr_stock_price) begin
+                market_movement_one(slave_stock_id, stock_get_threshold(slave_stock_id)-1);
+            end else if (slave_price > curr_stock_price) begin
+                market_movement_one(slave_stock_id, stock_get_threshold(slave_stock_id)+1);
             end
         end
-        market_movement();
     end
     endtask
-    */
+
     /* --- Market Movement -------------------------------------------------------------- */
     
     task market_movement_one(input [2:0] stock_id, input signed [7:0] threshold);
