@@ -44,23 +44,16 @@ module test_trade_data_structures();
     /* --- Data Structures -------------------------------------------------------------- */
     parameter NO_ACCOUNTS = 3;
     parameter BITWIDTH_ACCT = 8*4; // 0-255 x 4
-    reg [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] accounts = ~32'b0; // Balances
+    reg [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] accounts = ~'b0; // Balances
 
     parameter NO_STOCKS = 3;
     parameter BITWIDTH_STOCKS = 8*2; // 255
     reg [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] stocks = ~'b0; // prices, threshold
 
     parameter BITWIDTH_ADMIN_FEES = 32;
-    reg [BITWIDTH_ADMIN_FEES - 1 : 0] admin_fees = 0;
+    reg [BITWIDTH_ADMIN_FEES - 1 : 0] admin_fees = 'b0;
 
-    /* --- Stock Prices ----------------------------------------------*/
-    /*
-    function [7:0] stock_update_price(input [2:0] index, input [7:0] new_value)
-    begin
-        stock_update_price = (stocks & ~(~8'b0 << BITWIDTH_STOCKS*index)) | (new_value << BITWIDTH_STOCKS*index);
-    end
-    endfunction
-    */
+    /* --- Stock Prices & Threshold ----------------------------------------------*/
     
     function [7:0] stock_get_price(input [2:0] index);
         begin
@@ -75,9 +68,9 @@ module test_trade_data_structures();
     endfunction
 
     function [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] stock_update_price(
-        input [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] new_stocks_prices, 
         input [2:0] index, 
-        input [7:0] new_value
+        input [7:0] new_value,
+        input [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] new_stocks_prices
     ); begin
         // Bitmask = (((8'hff) << (BITWIDTH_ACCT*index)));
         stock_update_price =  (
@@ -90,9 +83,9 @@ module test_trade_data_structures();
     endfunction
 
     function [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] stock_update_threshold(
-        input [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] new_stocks_prices, 
         input [2:0] index, 
-        input [7:0] new_value
+        input [7:0] new_value,
+        input [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] new_stocks_prices
     ); begin
         // Bitmask = (((8'hff) << (BITWIDTH_ACCT*index)));
         stock_update_threshold =  (
@@ -118,9 +111,9 @@ module test_trade_data_structures();
     endfunction
     
     function [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] account_update_balance(
-        input [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] new_accounts, 
         input [2:0] index, 
-        input [7:0] new_value
+        input [7:0] new_value,
+        input [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] new_accounts
     ); begin
         // Bitmask = (((8'hff) << (BITWIDTH_ACCT*index)));
         account_update_balance =  (
@@ -133,10 +126,10 @@ module test_trade_data_structures();
     endfunction
 
     function [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] account_update_stock(
-        input [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] new_accounts, 
         input [2:0] index, 
         input [2:0] stock_index,
-        input [7:0] new_value
+        input [7:0] new_value,
+        input [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] new_accounts
     ); begin
         account_update_stock =  (
             (
@@ -156,7 +149,7 @@ module test_trade_data_structures();
         // accounts <= account_update_stock(accounts, 0, 0, 2); // This will overwrite
 
         // Account Test
-        accounts <= account_update_stock(account_update_balance(accounts, 2, 1), 2, 0, 2);
+        accounts <= account_update_stock(2, 0, 2, account_update_balance(2, 1, accounts));
         #10;
         out_test <= account_get_balance(2);
         #10;
@@ -164,7 +157,7 @@ module test_trade_data_structures();
         #10;
         
         A = 1; 
-        stocks <= stock_update_threshold(stock_update_price(stocks, 2, 3), 2, 4);
+        stocks <= stock_update_threshold(2, 4, stock_update_price(2, 3, stocks));
         #10;
         out_test <= stock_get_price(2);
         #10;

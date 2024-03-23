@@ -9,134 +9,236 @@ module trade_module_master #(
     parameter DBITS=8, UART_FRAME_SIZE=8
 )(
     // Control
-    input reset, input clk,
+    input reset, input clk_100MHz,
     // UART
     input [UART_FRAME_SIZE*DBITS-1:0] uart_rx,
     output [UART_FRAME_SIZE*DBITS-1:0] uart_tx,
-    output uart_tx_trigger,
+    output reg uart_tx_trigger=0,
 
     // Debugging //////////////////////////////////////////////////////////
-    // Control
-    input [15:0] sw, output [15:0] led, 
-    output reg [7:0] fsm_state=0, 
-    output reg [32-1:0] fsm_timer=0 
+    output [95:0] debug_accounts,
+    output [95:0] debug_stocks,
+    output [31:0] debug_admin_fees
 );
 
-    parameter MOVEMENT_THRSHOLD = 10;
+    parameter MOVEMENT_THRSHOLD = 1;//0;
 
     /* --- Data Structures -------------------------------------------------------------- */
     parameter NO_ACCOUNTS = 3;
     parameter BITWIDTH_ACCT = 8*4; // 0-255 x 4
-    reg [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] accounts = 0; // Balances
+    reg [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] accounts = 'hff_ff_ff_ff___01_00_01_ff___01_00_00_ff;
+    //~'b0; // Balances
 
     parameter NO_STOCKS = 3;
-    parameter BITWIDTH_STOCKS = 8; // 255
-    reg [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] stocks = 0; // prices
-
-    parameter BITWIDTH_THRESHOLD = 8; // 255
-    reg [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] stocks_threshold = 0; // Balances
+    parameter BITWIDTH_STOCKS = 8*2; // 255
+    reg [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] stocks = 'hff_ff__ff_ff__ff_0f;
+    //~'b0; // prices, threshold
 
     parameter BITWIDTH_ADMIN_FEES = 32;
-    reg [BITWIDTH_ADMIN_FEES - 1 : 0] admin_fees = 0;
+    reg [BITWIDTH_ADMIN_FEES - 1 : 0] admin_fees = 'b0;
 
-
-    function [7:0] get_entry(input [2:0] index, input [3*8-1:0] memory);
+    /* --- Stock Prices & Threshold ----------------------------------------------*/
+    
+    function [7:0] stock_get_price(input [2:0] index);
         begin
-            get_entry = memory >> BITWIDTH_STOCKS*index;
+            stock_get_price = stocks >> (BITWIDTH_STOCKS*index);
         end
     endfunction
     
-    function [7:0] change_entry_value(input [2:0] index, input [3*8-1:0] memory, input [7:0] new_value)
-    begin
-        change_entry_value = (memory & ~(~8'b0 << BITWIDTH_STOCKS*index)) | (new_value << BITWIDTH_STOCKS*index);
+    function [7:0] stock_get_threshold(input [2:0] index);
+        begin
+            stock_get_threshold = stocks >> (BITWIDTH_STOCKS*index + 8);
+        end
+    endfunction
+
+    function [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] stock_update_price(
+        input [2:0] index, 
+        input [7:0] new_value,
+        input [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] new_stocks_prices
+    ); begin
+        // Bitmask = (((8'hff) << (BITWIDTH_ACCT*index)));
+        stock_update_price =  (
+            (
+                new_stocks_prices &    
+                ~((8'hff) << (BITWIDTH_STOCKS*index))
+            ) | (new_value << (BITWIDTH_STOCKS*index))
+        );
     end
     endfunction
 
-    // Account //////////////////////////////////////////////////////////////////////
+    function [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] stock_update_threshold(
+        input [2:0] index, 
+        input [7:0] new_value,
+        input [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] new_stocks_prices
+    ); begin
+        // Bitmask = (((8'hff) << (BITWIDTH_ACCT*index)));
+        stock_update_threshold =  (
+            (
+                new_stocks_prices &    
+                ~((8'hff) << (BITWIDTH_STOCKS*index+8))
+            ) | (new_value << (BITWIDTH_STOCKS*index+8))
+        );
+    end
+    endfunction
+
+    /* --- Account ----------------------------------------------*/
     function [7:0] account_get_balance(input [2:0] index);
         begin
-            get_entry = accounts >> (BITWIDTH_ACCT*index + (0 * 8));
+            account_get_balance = accounts >> (BITWIDTH_ACCT*index);
         end
     endfunction
+
     function [7:0] account_get_stock(input [2:0] index, input [2:0] stock_index);
         begin
-            get_entry = accounts >> (BITWIDTH_ACCT*index + (stock_index + 1 * 8));
+            account_get_stock = accounts >> (BITWIDTH_ACCT*index + (stock_index + 1 * 8));
         end
     endfunction
     
-    task update_account(input [2:0] index, input [2:0] position_index, input [7:0] new_value);
-    begin
-        accounts[
-            BITWIDTH_ACCT*index + (((position_index+1) * 8) -1) :
-            BITWIDTH_ACCT*index + (position_index * 8)
-        ] <= new_value;
+    function [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] account_update_balance(
+        input [2:0] index, 
+        input [7:0] new_value,
+        input [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] new_accounts
+    ); begin
+        // Bitmask = (((8'hff) << (BITWIDTH_ACCT*index)));
+        account_update_balance =  (
+            (
+                new_accounts &    
+                ~((8'hff) << (BITWIDTH_ACCT*index))
+            ) | (new_value << (BITWIDTH_ACCT*index))
+        );
     end
-    endtask
+    endfunction
 
-    /* --- Finite State Machine ---------------------------------------------------------- */
+    function [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] account_update_stock(
+        input [2:0] index, 
+        input [2:0] stock_index,
+        input [7:0] new_value,
+        input [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] new_accounts
+    ); begin
+        account_update_stock =  (
+            (
+                new_accounts &    
+                ~((8'hff) << (BITWIDTH_ACCT*index + (stock_index + 1 * 8)) )
+            ) | (new_value << (BITWIDTH_ACCT*index + (stock_index + 1 * 8)) )
+        );
+    end
+    endfunction
+    /* --- UART Sender -------------------------------------------------------------------------- */
+    reg [7:0] master_type=0;
+    reg [7:0] master_account_id=0;
+    reg [7:0] master_stock_id=0;
+    reg [7:0] master_qty=0;
+    reg [7:0] master_price=0;
+    trade_packet_former 
+        #(
+            .DBITS(DBITS), .UART_FRAME_SIZE(UART_FRAME_SIZE)
+        ) former (
+        .type(master_type), .account_id(master_account_id), 
+        .stock_id(master_stock_id), .qty(master_qty), 
+        .price(master_price), .uart_tx(uart_tx)
+    );
 
+    // Auto detach
+    always @(posedge clk_100MHz) begin
+        if (uart_tx_trigger) begin
+            uart_tx_trigger <= 0;
+        end
+    end
 
-    /* --- Approval Logic --------------------------------------------------------------- */
-    wire [7:0] packet_type;
-    wire [7:0] packet_account_id;
-    wire [7:0] packet_stock_id;
-    wire [7:0] packet_qty;
-    wire [7:0] packet_price;
-    trade_packet_parser 
+    /* --- UART Receiver -------------------------------------------------------------------------- */
+    wire [7:0] slave_type;
+    wire [7:0] slave_account_id;
+    wire [7:0] slave_stock_id;
+    wire [7:0] slave_qty;
+    wire [7:0] slave_price;
+    trade_packet_parser // redundancy with module_slave but whatever
         #(
             .DBITS(DBITS), 
             .UART_FRAME_SIZE(UART_FRAME_SIZE)
         ) parser (
         .uart_rx(uart_rx), 
-        .type(packet_type), 
-        .account_id(packet_account_id), 
-        .stock_id(packet_stock_id), 
-        .qty(packet_qty), 
-        .price(packet_price)
+        .type(slave_type), 
+        .account_id(slave_account_id), 
+        .stock_id(slave_stock_id), 
+        .qty(slave_qty), 
+        .price(slave_price)
     );
+    
+    task fsm_uart_receive();
+    begin
+        if (slave_type == parser.TYPE_INVALID) begin
+            // do nothing
+        end else if (slave_type == parser.TYPE_BUY) begin
+            // process buy request
+            trade_approve_buy();
+        end else if (slave_type == parser.TYPE_SELL) begin
+            // do nothing
+        end
+    end
+    endtask
 
-    wire [BITWIDTH_ACCT:0]   curr_account = get_account(packet_account_id, 0);
-    wire [BITWIDTH_STOCKS:0] curr_stock_price   = get_entry(packet_stock_id, stocks);    
-    wire [31:0] amount_paid = packet_price * packet_qty;      // amount_paid  = curr_stock.price * packet_qty
-    wire price_match_buy = curr_stock_price <= packet_price;      // price_match  = curr_stock.price <= packet_price
-    wire can_buy = curr_account >= amount_paid;             // can_buy = (curr_account.balance >= amount_paid)
+    
+    always @(posedge clk_100MHz) begin
+        fsm_uart_receive();
+    end
 
-    wire price_match_sell = curr_stock_price >= packet_price;      
-    wire can_sell = get_account(packet_account_id, packet_stock_id+1) >= packet_qty;    // TODO: Get Qty of Stock existing
+    /* --- UART Checker --------------------------------------------------------------------------- */
+
+
+    /* --- Approval Logic --------------------------------------------------------------- */
+    
+    wire [BITWIDTH_ACCT:0]   curr_account_balance = account_get_balance(slave_account_id);
+    wire [7:0]               curr_account_stock_qty = account_get_stock(slave_account_id, slave_stock_id);
+    wire [BITWIDTH_STOCKS:0] curr_stock_price     = stock_get_price(slave_stock_id);    
+    wire [31:0] amount_paid = slave_price * slave_qty;      // amount_paid  = curr_stock.price * slave_qty
+    wire price_match_buy = curr_stock_price <= slave_price; // price_match  = curr_stock.price <= slave_price
+    wire can_buy = curr_account_balance >= amount_paid;     // can_buy = (curr_account.balance >= amount_paid)
+
+    wire price_match_sell = curr_stock_price >= slave_price;      
+    wire can_sell = account_get_stock(slave_account_id, slave_stock_id) >= slave_qty;    // TODO: Get Qty of Stock existing
 
     task trade_approve_buy();
     begin
         if (can_buy && price_match_buy) begin
             // Math -----------------------------------------
-            update_account(packet_account_id, 0, amount_paid);
-            update_account(packet_account_id, packet_stock_id+1, get_account(packet_account_id, packet_stock_id+1) + packet_qty);
-            admin_fees <= admin_fees + (packet_price - curr_stock_price) * packet_qty
+            accounts <= (
+                account_update_balance(slave_account_id, curr_account_balance - (slave_price*slave_qty),
+                account_update_stock( slave_account_id, slave_stock_id, curr_account_stock_qty + 1,
+                accounts))
+            );
+            admin_fees <= admin_fees + (slave_price - curr_stock_price) * slave_qty;
             // Comms ----------------------------------------
             // Send OK Packet
+            master_type <= former.TYPE_OK;
+            uart_tx_trigger <= 1;
         end else begin
             // Comms ----------------------------------------
             // Send Fail Packet
+            master_type <= former.TYPE_FAIL;
+            uart_tx_trigger <= 1;
         end
-
+        /*
         // Market Movement -----------------------------------
         if (can_buy) begin
-            if (packet_price < curr_stock_price) begin
-                update_entry(packet_stock_id, stocks_threshold, get_entry(packet_stock_id, stocks_threshold)-1 );
-            end else if (packet_price >= curr_stock_price) begin
-                update_entry(packet_stock_id, stocks_threshold, get_entry(packet_stock_id, stocks_threshold)+1 );
+            if (slave_price < curr_stock_price) begin
+                update_entry(slave_stock_id, stocks_threshold, get_entry(slave_stock_id, stocks_threshold)-1 );
+            end else if (slave_price >= curr_stock_price) begin
+                update_entry(slave_stock_id, stocks_threshold, get_entry(slave_stock_id, stocks_threshold)+1 );
             end
         end
         market_movement();
+        */
     end
     endtask
-
+    
+    /*
     task trade_approve_sell();
     begin
         if (can_sell && price_match_sell) begin
             // Math -----------------------------------------
-            update_account(packet_account_id, 0, amount_paid);
-            update_account(packet_account_id, packet_stock_id+1, get_account(packet_account_id, packet_stock_id+1) + packet_qty);
-            admin_fees <= admin_fees + (packet_price - curr_stock_price) * packet_qty
+            update_account(slave_account_id, 0, amount_paid);
+            update_account(slave_account_id, slave_stock_id+1, get_account(slave_account_id, slave_stock_id+1) + slave_qty);
+            admin_fees <= admin_fees + (slave_price - curr_stock_price) * slave_qty
             // Comms ----------------------------------------
             // Send OK Packet
         end else begin
@@ -146,17 +248,18 @@ module trade_module_master #(
 
         // Market Movement -----------------------------------
         if (can_buy) begin
-            if (packet_price > curr_stock_price) begin
-                update_entry(packet_stock_id, stocks_threshold, get_entry(packet_stock_id, stocks_threshold)-1 );
-            end else if (packet_price <= curr_stock_price) begin
-                update_entry(packet_stock_id, stocks_threshold, get_entry(packet_stock_id, stocks_threshold)+1 );
+            if (slave_price > curr_stock_price) begin
+                update_entry(slave_stock_id, stocks_threshold, get_entry(slave_stock_id, stocks_threshold)-1 );
+            end else if (slave_price <= curr_stock_price) begin
+                update_entry(slave_stock_id, stocks_threshold, get_entry(slave_stock_id, stocks_threshold)+1 );
             end
         end
         market_movement();
     end
     endtask
-
+    */
     /* --- Market Movement -------------------------------------------------------------- */
+    /*
     task market_movement_one(input [2:0] stock_id);
     begin
         if (get_entry(stock_id, stocks_threshold) <= -MOVEMENT_THRSHOLD) begin
@@ -177,7 +280,12 @@ module trade_module_master #(
         market_movement_one(2);
     end
     endtask
+    */
 
+    /* --- Debug -------------------------------------------------------*/
+    assign debug_accounts = accounts;
+    assign debug_stocks = stocks;
+    assign debug_admin_fees = admin_fees;
 endmodule
 
 
