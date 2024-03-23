@@ -10,9 +10,11 @@ module trade_packet_former#(
     input [7:0] price,
     output  [UART_FRAME_SIZE*DBITS-1:0] uart_tx
 );
-    parameter TYPE_INVALID = 0;
-    parameter TYPE_BUY = 1;
-    parameter TYPE_SELL = 2;
+    parameter TYPE_INVALID = 8'd0;
+    parameter TYPE_BUY = 8'd1;
+    parameter TYPE_SELL = 8'd2;
+    parameter TYPE_OK = 8'd3;
+    parameter TYPE_FAIL = 8'd4;
     assign uart_tx = {"[", type, account_id, stock_id, qty, price, 8'b0, "]"};
 endmodule
 
@@ -29,8 +31,10 @@ module trade_packet_parser#(
 
     // Parameters for stock 
     parameter TYPE_INVALID = 8'd0;
-    parameter TYPE_OK = 8'd1;
-    parameter TYPE_FAIL = 8'd2;
+    parameter TYPE_BUY = 8'd1;
+    parameter TYPE_SELL = 8'd2;
+    parameter TYPE_OK = 8'd3;
+    parameter TYPE_FAIL = 8'd4;
 
     wire [7:0] char_first = uart_rx[63:56];
     wire [7:0] char_last = uart_rx[7:0];
@@ -42,3 +46,4 @@ module trade_packet_parser#(
     assign qty = uart_rx[DBITS*4-1:DBITS*3];
     assign price = uart_rx[DBITS*3-1:DBITS*2];
 endmodule
+
