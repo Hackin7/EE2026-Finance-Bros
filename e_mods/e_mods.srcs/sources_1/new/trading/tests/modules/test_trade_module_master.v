@@ -21,6 +21,7 @@ module test_trade_module_master();
     wire [95:0]   debug_accounts;
     wire [95:0]   debug_stocks;
     wire [32-1:0] debug_admin_fees;
+    wire [32-1:0] debug_general;
 
     // Instantiation of the module to be simulated
     trade_module_master 
@@ -34,7 +35,8 @@ module test_trade_module_master();
         .uart_tx_trigger(uart_tx_trigger),
         .debug_accounts(debug_accounts),
         .debug_stocks(debug_stocks),
-        .debug_admin_fees(debug_admin_fees)
+        .debug_admin_fees(debug_admin_fees),
+        .debug_general(debug_general)
     );
 
     initial begin
@@ -63,7 +65,7 @@ module test_trade_module_master();
         8'd1, 
         8'd0, 
         8'd1, // qty 
-        8'd14, // price 14, 
+        8'd15, // price 14, 
          "A", "]"}; //  trade_packet_recv.TYPE_OK
 	   rst = 0; 
 	   #10 clk = 0; #10 clk = 1;
@@ -72,6 +74,7 @@ module test_trade_module_master();
        #10 clk = 0; #10 clk = 1; 
        #10 clk = 0; #10 clk = 1;
 
+       #10 clk = 0; #10 clk = 0; 
        uart_rx = BOF_PAYLOAD;
        #10 clk = 0; #10 clk = 1;
        #10 clk = 0; #10 clk = 1;
@@ -83,7 +86,7 @@ module test_trade_module_master();
         8'd1, 
         8'd0, 
         8'd1, // qty 
-        8'd14, // price 14, 
+        8'd15, // price 14, 
          "A", "]"}; //  trade_packet_recv.TYPE_OK
        #10 clk = 0; #10 clk = 1;
        #10 clk = 0; #10 clk = 1;

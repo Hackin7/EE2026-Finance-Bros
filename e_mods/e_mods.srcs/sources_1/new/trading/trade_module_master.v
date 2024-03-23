@@ -20,7 +20,8 @@ module trade_module_master #(
     // Debugging //////////////////////////////////////////////////////////
     output [95:0] debug_accounts,
     output [95:0] debug_stocks,
-    output [31:0] debug_admin_fees
+    output [31:0] debug_admin_fees, 
+    output [31:0] debug_general
 );
 
     parameter MOVEMENT_THRSHOLD = 2;//0;
@@ -166,6 +167,7 @@ module trade_module_master #(
         .price(slave_price)
     );
     
+    
     reg [UART_FRAME_SIZE*DBITS-1:0] prev_processed_uart_rx=0;
     task fsm_uart_receive();
     begin
@@ -180,8 +182,9 @@ module trade_module_master #(
             prev_processed_uart_rx <= uart_rx;
         end else if (slave_type == parser.TYPE_SELL) begin
             // do nothing
+        end else begin
+            // do nothing
         end
-        
     end
     endtask
 
@@ -190,14 +193,11 @@ module trade_module_master #(
         fsm_uart_receive();
     end
 
-    /* --- UART Checker --------------------------------------------------------------------------- */
-
-
     /* --- Approval Logic --------------------------------------------------------------- */
     
-    wire [BITWIDTH_ACCT:0]   curr_account_balance = account_get_balance(slave_account_id);
+    wire [BITWIDTH_ACCT:0]   curr_account_balance   = account_get_balance(slave_account_id);
     wire [7:0]               curr_account_stock_qty = account_get_stock(slave_account_id, slave_stock_id);
-    wire [BITWIDTH_STOCKS:0] curr_stock_price     = stock_get_price(slave_stock_id);    
+    wire [BITWIDTH_STOCKS:0] curr_stock_price       = stock_get_price(slave_stock_id);    
     wire [31:0] amount_paid = slave_price * slave_qty;      // amount_paid  = curr_stock.price * slave_qty
     wire price_match_buy = curr_stock_price <= slave_price; // price_match  = curr_stock.price <= slave_price
     wire can_buy = curr_account_balance >= amount_paid;     // can_buy = (curr_account.balance >= amount_paid)
