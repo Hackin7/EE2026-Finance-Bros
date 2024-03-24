@@ -16,6 +16,7 @@ module trade_module_master #(
     input [UART_FRAME_SIZE*DBITS-1:0] uart_rx,
     output [UART_FRAME_SIZE*DBITS-1:0] uart_tx,
     output reg uart_tx_trigger=0,
+    output reg uart_rx_clear=0,
 
     // Debugging //////////////////////////////////////////////////////////
     output [167:0] debug_accounts,

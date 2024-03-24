@@ -26,6 +26,7 @@ module trade_module_slave #(
     input  [UART_FRAME_SIZE*DBITS-1:0] uart_rx,
     output [UART_FRAME_SIZE*DBITS-1:0] uart_tx,
     output reg uart_tx_trigger=0,
+    output reg uart_rx_clear=0,
     // Trade Buffer
     input [7:0] tx_type,
     input [7:0] tx_account_id,
@@ -116,6 +117,7 @@ module trade_module_slave #(
 
     task fsm_uart_send();
         begin
+            uart_rx_clear <= 0;
             if (tx_type == former.TYPE_INVALID) begin
                 // fsm_timer <= 0; // doesn't matter
             /*end else if (packet_type == parser.TYPE_OK) begin // Catch any sudden receive - will ignore for now
@@ -173,6 +175,7 @@ module trade_module_slave #(
     begin
         if (trigger) begin
             send_status <= STATUS_PROCESSING;
+            uart_rx_clear <= 1;
             fsm_change_state(S0);
         end
     end
@@ -212,8 +215,9 @@ module trade_module_slave #(
         sw[4:0] == 10 ? uart_tx[47:40] : (
         sw[4:0] == 11 ? uart_tx[55:48] : (
         sw[4:0] == 12 ? uart_tx[63:56] : (
+        sw[4:0] == 15 ? send_status: (
             ~8'b0
-        )))))))))))))
+        ))))))))))))))
     );
 endmodule
 

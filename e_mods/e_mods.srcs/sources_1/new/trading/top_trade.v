@@ -27,6 +27,7 @@ module top_trade (
     //// UART //////////////////////////////////////////////
     parameter DBITS = 8;
     parameter UART_FRAME_SIZE = 8;
+    wire uart_rx_clear;
     wire uart_tx_trigger;
     wire [UART_FRAME_SIZE*DBITS-1:0] uart_rx;
     wire [UART_FRAME_SIZE*DBITS-1:0] uart_tx;
@@ -43,6 +44,7 @@ module top_trade (
             .rx(rx), .tx(tx),
             // .rx_full(rx_full), .rx_empty(rx_empty), .rx_tick(rx_tick),
             .rx_out(uart_rx),
+            .rx_clear(uart_rx_clear),
             .tx_trigger(uart_tx_trigger),
             .tx_in(uart_tx)
         );
@@ -57,7 +59,8 @@ module top_trade (
 
     wire master_uart_tx_trigger;
     wire master_uart_tx;
-    wire trigger;
+
+    reg trade_slave_trigger;
     wire [7:0] send_status;
     trade_packet_former trade_packet();
     trade_module_slave 
@@ -69,16 +72,29 @@ module top_trade (
         .uart_rx(uart_rx),
         .uart_tx(uart_tx),
         .uart_tx_trigger(uart_tx_trigger),
+        .uart_rx_clear(uart_rx_clear),
         // Trade Parameters
         .tx_type(trade_packet.TYPE_BUY),
         .tx_account_id(4),
         .tx_stock_id(1),
         .tx_qty(2),
         .tx_price(3),
-        .trigger(trigger),
+        .trigger(trade_slave_trigger),
         .send_status(send_status),
 
         // Debugging Ports
         .sw(sw), .led(led)
     );
+    // Basic Debouncing
+    reg prev_btnC = 0;
+    always @(posedge clk) begin
+        if (prev_btnC == 1 && btnC == 0) begin
+            trade_slave_trigger = 1;
+        end else begin
+            trade_slave_trigger = 0;
+        end
+        prev_btnC <= btnC;
+    end
+    // checkpoint 1
+    
 endmodule

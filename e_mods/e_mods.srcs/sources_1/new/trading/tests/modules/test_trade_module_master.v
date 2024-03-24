@@ -15,6 +15,7 @@ module test_trade_module_master();
     reg [UART_FRAME_SIZE*DBITS-1:0] uart_rx = {"A", "A", "A", "A", "A", "A", "A", "]"};
     wire [UART_FRAME_SIZE*DBITS-1:0] uart_tx;
     wire uart_tx_trigger;
+    wire uart_rx_clear;
 
     reg trigger = 1;
     
@@ -33,6 +34,7 @@ module test_trade_module_master();
         .uart_rx(uart_rx),
         .uart_tx(uart_tx),
         .uart_tx_trigger(uart_tx_trigger),
+        .uart_rx_clear(uart_rx_clear),
         .debug_accounts(debug_accounts),
         .debug_stocks(debug_stocks),
         .debug_admin_fees(debug_admin_fees),

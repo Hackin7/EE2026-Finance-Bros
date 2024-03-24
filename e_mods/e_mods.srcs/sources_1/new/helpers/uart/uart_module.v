@@ -71,17 +71,14 @@ module uart_module
         output tx,              // USB-RS232 Tx
     
         // Receiving
-        output rx_full,                 // do not write data to FIFO
-        output rx_empty,                // no data to read from FIFO
         output [DBITS*FIFO_IN_SIZE - 1:0] rx_out,
-        output rx_tick,
-        
-        // Debugging
-        output [DBITS*FIFO_OUT_SIZE - 1:0] tx_fifo_out,
-        
+        input rx_clear,
         // Sending
         input tx_trigger,
-        input [DBITS*FIFO_OUT_SIZE -1 :0] tx_in //2**FIFO_EXP_IN) -  1
+        input [DBITS*FIFO_OUT_SIZE -1 :0] tx_in, //2**FIFO_EXP_IN) -  1
+        
+        // Debugging
+        output [DBITS*FIFO_OUT_SIZE - 1:0] tx_fifo_out
     );
     
     // Connection Signals
@@ -129,7 +126,7 @@ module uart_module
              .clk(clk_100MHz),
              .write_to_fifo(rx_done_tick),
              .write_data_in(rx_data_out),
-             .write_batch_to_fifo(0),
+             .write_batch_to_fifo(rx_clear),
              .write_batch_data_in(0),
              .read_all_data_out(rx_out),
              .tick(read_tick)  
