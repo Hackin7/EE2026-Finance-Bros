@@ -63,7 +63,7 @@ module top_trade (
     reg trade_slave_trigger;
     wire [7:0] send_status;
     trade_packet_former trade_packet();
-    trade_module_slave 
+    /*trade_module_slave 
         #(
          .DBITS(DBITS), .UART_FRAME_SIZE(UART_FRAME_SIZE), .RX_TIMEOUT(100_000_000)
         )
@@ -96,5 +96,21 @@ module top_trade (
         prev_btnC <= btnC;
     end
     // checkpoint 1
+    */
     
+    trade_module_master 
+        #(
+         .DBITS(DBITS), .UART_FRAME_SIZE(UART_FRAME_SIZE)
+        )
+        trade_slave (
+        .clk_100MHz(clk), .reset(),
+        .uart_rx(uart_rx),
+        .uart_tx(uart_tx),
+        .uart_tx_trigger(uart_tx_trigger),
+        .uart_rx_clear(uart_rx_clear),
+        
+        // Debugging Ports
+        .sw(sw), .led(led)
+    );
+
 endmodule

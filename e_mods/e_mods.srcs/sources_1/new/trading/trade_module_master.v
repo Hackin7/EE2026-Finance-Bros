@@ -22,7 +22,9 @@ module trade_module_master #(
     output [167:0] debug_accounts,
     output [95:0] debug_stocks,
     output [31:0] debug_admin_fees, 
-    output [31:0] debug_general
+    output [31:0] debug_general,
+    // Control
+    input [15:0] sw, output [15:0] led
 );
 
     parameter MOVEMENT_THRSHOLD = 2;//0;
@@ -155,13 +157,6 @@ module trade_module_master #(
         .price(master_price), .uart_tx(uart_tx)
     );
 
-    // Auto detach
-    always @(posedge clk_100MHz) begin
-        if (uart_tx_trigger) begin
-            uart_tx_trigger <= 0;
-        end
-    end
-
     /* --- UART Receiver -------------------------------------------------------------------------- */
     wire [7:0] slave_type;
     wire [7:0] slave_account_id;
@@ -182,27 +177,29 @@ module trade_module_master #(
     );
     
     
-    reg [UART_FRAME_SIZE*DBITS-1:0] prev_processed_uart_rx=0;
     task fsm_uart_receive();
     begin
-        if (prev_processed_uart_rx == uart_rx) begin
-            // do nothing - Don't process a request twice in a row
-        end else if (slave_type == parser.TYPE_INVALID) begin
-            prev_processed_uart_rx <= 0; // Clear processed
+        uart_rx_clear <= 0;
+        if (slave_type == parser.TYPE_INVALID) begin
+            // Do nothing
         end else if (slave_type == parser.TYPE_BUY) begin
             trade_approve_buy();
-            prev_processed_uart_rx <= uart_rx;
+            uart_rx_clear <= 1;
         end else if (slave_type == parser.TYPE_SELL) begin
             trade_approve_sell();
-            prev_processed_uart_rx <= uart_rx;
+            uart_rx_clear <= 1;
         end else begin
-            prev_processed_uart_rx <= 0; // Clear processed
+            // Do nothing
         end
     end
     endtask
 
     
     always @(posedge clk_100MHz) begin
+        // UART Send Reset
+        if (uart_tx_trigger) begin
+            uart_tx_trigger <= 0;
+        end
         fsm_uart_receive();
     end
 
@@ -322,6 +319,23 @@ module trade_module_master #(
     assign debug_accounts = accounts;
     assign debug_stocks = stocks;
     assign debug_admin_fees = admin_fees;
+    assign led[15:0] = (
+        sw[15:0] == 0 ? {slave_type} : ( // Buggy
+        sw[15:0] == 1 ? {slave_account_id} : (   
+        sw[15:0] == 2 ? {slave_stock_id} : (
+        sw[15:0] == 3 ? {slave_qty} : (
+        sw[15:0] == 4 ? {slave_price} : (
+        sw[15:0] == 5 ? uart_rx[7:0] : (
+        sw[15:0] == 6 ? uart_rx[15:8] : (
+        sw[15:0] == 7 ? uart_rx[23:16] : (
+        sw[15:0] == 8 ? uart_rx[31:24] : (
+        sw[15:0] == 9 ? uart_rx[39:32] : (
+        sw[15:0] == 10 ? uart_rx[47:40] : (
+        sw[15:0] == 11 ? uart_rx[55:48] : (
+        sw[15:0] == 12 ? uart_rx[63:56] : (
+            ~'b0
+        )))))))))))))
+    );
 endmodule
 
 

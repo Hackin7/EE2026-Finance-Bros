@@ -62,7 +62,8 @@ module test_trade_module_master();
        #10 clk = 0; #10 clk = 1;
        #10 clk = 0; #10 clk = 1;
        #10 clk = 0; #10 clk = 1;
-	   uart_rx = {"[", 
+	   
+       uart_rx = {"[", 
         trade_packet_recv.TYPE_BUY, 
         8'd1, 
         8'd0, 
@@ -71,6 +72,8 @@ module test_trade_module_master();
          "A", "]"}; //  trade_packet_recv.TYPE_OK
 	   rst = 0; 
 	   #10 clk = 0; #10 clk = 1;
+       uart_rx = 0; //  Simulate a clear
+
 	   #10 clk = 0; #10 clk = 1;
 	   #10 clk = 0; #10 clk = 1;
        #10 clk = 0; #10 clk = 1; 
@@ -92,6 +95,8 @@ module test_trade_module_master();
          "A", "]"
        }; //  trade_packet_recv.TYPE_OK
        #10 clk = 0; #10 clk = 1;
+       uart_rx = 0; //  Simulate a clear
+
        #10 clk = 0; #10 clk = 1;
        #10 clk = 0; #10 clk = 1; 
        #10 clk = 0; #10 clk = 1; 
