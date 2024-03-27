@@ -111,6 +111,12 @@ module top (
     wire slave_uart_tx;
     wire [15:0] slave_oled_pixel_data;
 
+    menuCode menu(
+        .clk(clk), .reset(0) , .sw(sw),
+        .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
+        .oled_pixel_index(oled_pixel_index), 
+        .oled_pixel_data(slave_oled_pixel_data));
+        
     /*adaptor_task_a task_a(
         .reset(a_reset), .clk(clk),
         .btnC(btnC), .btnU(btnU), .btnL(btnL), .btnR(btnR), .btnD(btnD), .sw(sw), .led(a_led), 

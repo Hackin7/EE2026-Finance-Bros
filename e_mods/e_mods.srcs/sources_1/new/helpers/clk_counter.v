@@ -25,7 +25,7 @@ module clk_counter #(parameter COUNT_UP=10, COUNT_DOWN=10, BITWIDTH=30)(input cl
     initial begin
         counter <= 0;
         clk_out <= 1'b0;
-    end;
+    end
     always @ (posedge clk) begin
         counter <= counter + 1;
         if (counter == COUNT_UP-1) begin // if the new value of counter is matched
