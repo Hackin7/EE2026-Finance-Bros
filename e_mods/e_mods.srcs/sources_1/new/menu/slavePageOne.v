@@ -26,17 +26,25 @@ module slavePageOne(
     // LEDs, Switches, Buttons
     input btnC, btnU, btnL, btnR, btnD, input [15:0] sw,
     input [12:0] pixel_index,
-    output [15:0] pixel_data,
+    output [15:0] oled_pixel_data,
     output [6:0] seg, output dp, output [3:0] an,
-    output [31:0] price, qty, stockNo,
+    output [31:0] price
     );
+    
+    reg [15:0] pixel_data = 16'b0;
+    assign oled_pixel_data = pixel_data;
+    
+    reg [6:0] controlSeg;
+    reg controlDp;
+    reg [3:0] controlAn;
+    assign seg = controlSeg;
+    assign dp = controlDp;
+    assign an = controlAn;
 
     reg [31:0] controlPrice;
     reg [31:0] controlQty;
     reg [31:0] controlStockNo;
     assign price = controlPrice;
-    assign qty = controlQty;
-    assign stockNo = controlStockNo;
     reg [7:0] xpos; reg [7:0] ypos;
     constants constant();
     
@@ -78,53 +86,51 @@ module slavePageOne(
     always @ (posedge clk_10000hz) begin
         state <= state + 1;
         if (state == 0) begin 
-            seg <= constant.num0;
-            dp <= dp0;
-            an <= 4'b1110;
+            controlSeg <= constant.num0;
+            controlDp <= 0;
+            controlAn <= 4'b1110;
         end else if (state == 1) begin 
-            seg <= constant.num1;
-            dp <= dp1;
-            an <= 4'b1101;
+            controlSeg <= constant.num1;
+            controlDp <= 0;
+            controlAn <= 4'b1101;
         end else if (state == 2) begin 
-            seg <= constant.num2;
-            dp <= dp2;
-            an <= 4'b1011;
+            controlSeg <= constant.num2;
+            controlDp <= 0;
+            controlAn <= 4'b1011;
         end else if (state == 3) begin 
-            seg <= constant.num3;
-            dp <= dp3;
-            an <= 4'b0111;
+            controlSeg <= constant.num3;
+            controlDp <= 0;
+            controlAn <= 4'b0111;
             state <= 0; // Reset
         end  
     end
 
     always @ (*) begin
-        if (btnC) begin
-            pressed <= 1;
-        end else if (pressed & ~btnC) begin
-            pageNo <= pageNo + 1;
-            pressed <= 0;
-        end
+        xpos = pixel_index % 96;
+        ypos = pixel_index / 96;
+        
         case (pageNo)
             0: begin
-                if ((xpos > 5 && xpos < 11) && (ypos > 5 && ypos < 11)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 6, 6, constant.charS) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 11 && xpos < 17) && (ypos > 5 && ypos < 11)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 12, 6, constant.charE) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 17 && xpos < 23) && (ypos > 5 && ypos < 11)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 18, 6, constant.charT) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 29 && xpos < 35) && (ypos > 5 && ypos < 11)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 30, 6, constant.charP) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 35 && xpos < 41) && (ypos > 5 && ypos < 11)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 36, 6, constant.charR) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 41 && xpos < 47) && (ypos > 5 && ypos < 11)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 42, 6, constant.charI) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 47 && xpos < 53) && (ypos > 5 && ypos < 11)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 48, 6, constant.charC) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 59 && xpos < 65) && (ypos > 5 && ypos < 11)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 54, 6, constant.charE) ? constant.BLACK : constant.WHITE;
+                if ((xpos > 25 && xpos < 31) && (ypos > 29 && ypos < 35)) begin
+                    pixel_data <= draw_letter(xpos, ypos, 26, 30, constant.charS) ? constant.BLACK : constant.WHITE;
+                end else if ((xpos > 31 && xpos < 37) && (ypos > 29 && ypos < 35)) begin
+                    pixel_data <= draw_letter(xpos, ypos, 32, 30, constant.charE) ? constant.BLACK : constant.WHITE;
+                end else if ((xpos > 37 && xpos < 43) && (ypos > 29 && ypos < 35)) begin
+                    pixel_data <= draw_letter(xpos, ypos, 38, 30, constant.charT) ? constant.BLACK : constant.WHITE;
+                end else if ((xpos > 49 && xpos < 55) && (ypos > 29 && ypos < 35)) begin
+                    pixel_data <= draw_letter(xpos, ypos, 50, 30, constant.charP) ? constant.BLACK : constant.WHITE;
+                end else if ((xpos > 55 && xpos < 61) && (ypos > 29 && ypos < 35)) begin
+                    pixel_data <= draw_letter(xpos, ypos, 56, 30, constant.charR) ? constant.BLACK : constant.WHITE;
+                end else if ((xpos > 61 && xpos < 67) && (ypos > 29 && ypos < 35)) begin
+                    pixel_data <= draw_letter(xpos, ypos, 62, 30, constant.charI) ? constant.BLACK : constant.WHITE;
+                end else if ((xpos > 67 && xpos < 73) && (ypos > 29 && ypos < 35)) begin
+                    pixel_data <= draw_letter(xpos, ypos, 68, 30, constant.charC) ? constant.BLACK : constant.WHITE;
+                end else if ((xpos > 73 && xpos < 79) && (ypos > 29 && ypos < 35)) begin
+                    pixel_data <= draw_letter(xpos, ypos, 74, 30, constant.charE) ? constant.BLACK : constant.WHITE;
                 end else pixel_data <= constant.WHITE;
             end
             1: begin
+                
             end
         endcase
 
