@@ -39,8 +39,10 @@ module image(
     clk_counter #(16, 5) clk6p25m (clk, clk_6_25mhz);
 
     reg [15:0] image_memory [0:7679]; // Adjust size based on image dimensions (96x64 for example)
+    reg [15:0] image2_memory [0:7679]; // Memory for the second image
     initial begin
-        $readmemh("image_data.mem", image_memory); // Load the image data
+        $readmemh("image_data.mem", image_memory); // Load the first image data
+        $readmemh("image2_data.mem", image2_memory); // Load the second image data
     end
 
     wire [12:0] oled_pixel_index;
@@ -55,12 +57,16 @@ module image(
 
     always @ (*) begin
         if (oled_pixel_index < 7680) begin // Assuming 96x64 image
-            oled_pixel_data = image_memory[oled_pixel_index];
+            if (btnC) begin
+                // When btnC is pressed, display the second image
+                oled_pixel_data = image2_memory[oled_pixel_index];
+            end else begin
+                // When btnC is not pressed, display the first image
+                oled_pixel_data = image_memory[oled_pixel_index];
+            end
         end else begin
             oled_pixel_data = 16'hFFFF; // Default or error color, adjust as needed
         end
     end
 
 endmodule
-
-
