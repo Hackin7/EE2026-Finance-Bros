@@ -64,7 +64,7 @@ module menuCode#(
     reg [7:0] trade_slave_price = 0;
 
     reg trade_slave_trigger = 0;
-    wire [7:0] send_status;
+    wire [7:0] trade_slave_send_status;
     trade_module_slave 
         #(
          .DBITS(DBITS), .UART_FRAME_SIZE(UART_FRAME_SIZE), .RX_TIMEOUT(100_000_000)
@@ -82,16 +82,21 @@ module menuCode#(
         .tx_qty(trade_slave_qty),
         .tx_price(trade_slave_price),
         .trigger(trade_slave_trigger),
-        .send_status(send_status), 
+        .send_status(trade_slave_send_status), 
         .led(led), .sw(sw)
     );
 
     // Logic
+    parameter TRADE_SUCCESS_SHOW = 200_000_000; // 2 seconds
+    reg [31:0] trade_module_send_success = 0;
     task trade_module_slave_processing();
     begin
-        /*if (send_status == trade_module_slave.STATUS_FAIL)
+        trade_module_send_success <= trade_module_send_success == 0 ? 0 : trade_module_send_success - 1;
+        if (trade_slave_send_status == trade_slave.STATUS_FAIL) begin
             trade_slave_trigger <= 1; // retry if fail
-        end*/
+        end else if (trade_slave_send_status == trade_slave.STATUS_OK) begin
+            trade_module_send_success <= TRADE_SUCCESS_SHOW; // show success screen
+        end
     end
     endtask
     /* Button Control Code --------------------------------------------------------------*/
@@ -99,7 +104,7 @@ module menuCode#(
 
     reg debounce = 0;
     reg debounce_timer = 0;
-    parameter DEBOUNCE_TIME = 10_000_000; // 100ms
+    parameter DEBOUNCE_TIME = 30_000_000; // 100ms
     
 
     task button_control();
@@ -160,12 +165,22 @@ module menuCode#(
         end
     end
     endtask
-
+    
+    task state_table_handle();
+    begin
+        if (!debounce) begin
+            if (prev_btnC == 1 && btnC == 0) begin
+                state <= STATE_MENU;
+                debounce <= 1;
+            end
+        end
+    end
+    endtask
     // Debugger
     /*assign led[5] = pageOne_done;
     assign led[4] = pageOne_reset;
     assign led[3:0] = state;*/
-
+    
     /* Multiplexer -------------------------------------*/ 
     always @ (posedge clk) begin
         trade_slave_trigger <= 0;
@@ -178,8 +193,10 @@ module menuCode#(
             state_add_trade_handle();
         end else if (state == STATE_FAIL_ADD_TRADE) begin
         end else if (state == STATE_TABLE_VIEW) begin
+            state_table_handle();
         end
         button_control();
+        trade_module_slave_processing();
     end
 
     wire [12:0] pixel_index = oled_pixel_index;
@@ -193,10 +210,12 @@ module menuCode#(
     assign an = control_an;
 
     always @ (*) begin
-        if (state == STATE_INPUT_SLAVE_ID) begin
+        if (trade_module_send_success > 0) begin
+            pixel_data <= constant.GREEN;   
+        end else if (state == STATE_INPUT_SLAVE_ID) begin
             pixel_data <= constant.WHITE;
         end else if (state == STATE_MENU) begin
-            pixel_data <= constant.GREEN;
+            pixel_data <= constant.YELLOW;
         end else if (state == STATE_ADD_TRADE) begin
             pixel_data = pageOne_pixel_data;
             control_seg = pageOne_seg;

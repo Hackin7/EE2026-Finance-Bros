@@ -163,6 +163,7 @@ module trade_module_slave #(
     task fsm_uart_wait();
     begin
         extra_state <= 8'b111111;
+        send_status <= STATUS_IDLE;
         if (trigger) begin
             send_status <= STATUS_PROCESSING;
             uart_rx_clear <= 1;
