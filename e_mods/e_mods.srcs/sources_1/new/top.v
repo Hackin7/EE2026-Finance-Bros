@@ -61,7 +61,8 @@ module top (
     //// UART //////////////////////////////////////////////
     parameter DBITS = 8;
     parameter UART_FRAME_SIZE = 4;
-    wire uart_tx_trigger = btnC;
+    wire uart_tx_trigger;
+    //assign uart_tx_trigger = btnC;
     wire [UART_FRAME_SIZE*DBITS-1:0] uart_rx;
     wire [UART_FRAME_SIZE*DBITS-1:0] uart_tx;
     // Complete UART Core
@@ -111,6 +112,12 @@ module top (
     wire slave_uart_tx;
     wire [15:0] slave_oled_pixel_data;
 
+    menuCode menu(
+        .clk(clk), .reset(0) , .sw(sw),
+        .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
+        .oled_pixel_index(oled_pixel_index), .oled_pixel_data(slave_oled_pixel_data),
+        .seg(slave_seg), .dp(slave_dp), .an(slave_an));
+        
     /*adaptor_task_a task_a(
         .reset(a_reset), .clk(clk),
         .btnC(btnC), .btnU(btnU), .btnL(btnL), .btnR(btnR), .btnD(btnD), .sw(sw), .led(a_led), 
