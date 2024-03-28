@@ -57,12 +57,12 @@ module slavePageOne(
             debounce <= debounce + 1;
         end else begin
             if (prev_btnU == 1 && btnU == 0) begin
-                key_in_value <= key_in_value + 1;
+                key_in_value <= key_in_value == 9999 ? 0 : key_in_value + 1;
                 debounce <= 1;
             end
             
             if (prev_btnD == 1 && btnD == 0) begin
-                key_in_value <= key_in_value - 1;
+                key_in_value <= key_in_value == 0 ? 9999 : key_in_value - 1;
                 debounce <= 1;
             end
 
@@ -90,6 +90,8 @@ module slavePageOne(
         end else if (pageNo == 2) begin
             key_in_value <= 0;
             pageNo <= pageNo + 1;
+        end else begin
+            pageNo <= 0;
         end
     end
     endtask
