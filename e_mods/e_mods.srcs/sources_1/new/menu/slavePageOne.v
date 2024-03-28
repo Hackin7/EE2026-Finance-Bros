@@ -163,7 +163,7 @@ module slavePageOne(
 
     // Text module
     wire [15:0] text_module_pixel_data;
-    text_dynamic #(13) text_module(
+    text_dynamic #(12) text_module(
         .x(xpos), .y(ypos), 
         .color(constant.WHITE), .background(constant.BLACK), 
         .text_y_pos(0), .string("SET STOCK ID"), .offset(0), //12*6), 
