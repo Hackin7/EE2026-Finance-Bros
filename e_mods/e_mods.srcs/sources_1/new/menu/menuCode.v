@@ -55,31 +55,21 @@ module menuCode(
     wire [6:0] pageOne_seg;
     wire pageOne_dp;
     wire [3:0] pageOne_an;
-    wire [31:0] price, qty, stock;
+    wire [31:0] price, qty, stock_id;
+    wire pageOne_done;
     slavePageOne pageOne(
         .clk(clk), .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
         .sw(sw), .pixel_index(pixel_index), .oled_pixel_data(pageOne_pixel_data),
         .seg(pageOne_seg), .dp(pageOne_dp), .an(pageOne_an),
-        .price(price)
+        .stock_id(stock_id), .price(price), .qty(qty), .done(pageOne_done)
     );
-    //page two
-        wire [15:0] pageTwo_pixel_data;
-        wire [6:0] pageTwo_seg;
-        wire pageTwo_dp;
-        wire [3:0] pageTwo_an;
-        slavePageTwo pageTwo(
-            .clk(clk), .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
-            .sw(sw), .pixel_index(pixel_index), .oled_pixel_data(pageTwo_pixel_data),
-            .seg(pageTwo_seg), .dp(pageTwo_dp), .an(pageTwo_an),
-            .qty(qty)
-        );
 
     always @ (*) begin
         //movement of buttons
         if (btnPressed & ~btnC) btnState <= btnState + 1;
         btnPressed <= btnC;
         
-        case (btnState)
+        case (pageOne_done)
             0: begin
                 pixel_data <= pageOne_pixel_data;
                 control_seg <= pageOne_seg;
@@ -87,10 +77,10 @@ module menuCode(
                 control_an <= pageOne_an;
             end
             1: begin
-                pixel_data <= pageTwo_pixel_data;
-                control_seg <= pageTwo_seg;
-                control_dp <= pageTwo_dp;
-                control_an <= pageTwo_an;
+                pixel_data <= constant.GREEN; //pageTwo_pixel_data;
+                //control_seg <= pageTwo_seg;
+                //control_dp <= pageTwo_dp;
+                //control_an <= pageTwo_an;
             end
         endcase
     end
