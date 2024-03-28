@@ -44,7 +44,7 @@ module slavePageOne(
 
     reg debounce = 0;
     reg debounce_timer = 0;
-    parameter DEBOUNCE_TIME = 10_000_000; // 100ms
+    parameter DEBOUNCE_TIME = 30_000_000; // 100ms
     
 
     task button_control();

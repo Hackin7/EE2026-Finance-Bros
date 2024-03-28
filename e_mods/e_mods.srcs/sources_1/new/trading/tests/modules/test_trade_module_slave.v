@@ -1,4 +1,4 @@
-
+`timescale 1ns/1ns
 module test_trade_module_slave();
     // Simulation Inputs
     reg clk;

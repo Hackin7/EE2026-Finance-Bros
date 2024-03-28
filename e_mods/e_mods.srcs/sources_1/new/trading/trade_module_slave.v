@@ -39,7 +39,7 @@ module trade_module_slave #(
     // Debugging //////////////////////////////////////////////////////////
     // Control
     input [15:0] sw, output [15:0] led, 
-    output reg [7:0] fsm_state=0, 
+    output reg [7:0] fsm_state=2, 
     output reg [32-1:0] fsm_timer=0 
 );
 
@@ -48,9 +48,10 @@ module trade_module_slave #(
     parameter S1 = 8'd1;
     parameter S2 = 8'd2;
 
-    parameter STATUS_PROCESSING = 8'd0;
-    parameter STATUS_OK = 8'd1;
-    parameter STATUS_FAIL = 8'd2;
+    parameter STATUS_IDLE = 8'd0;
+    parameter STATUS_PROCESSING = 8'd1;
+    parameter STATUS_OK = 8'd2;
+    parameter STATUS_FAIL = 8'd3;
     //reg [7:0] fsm_state = 0;
     //reg [32-1:0] fsm_timer = 0;
 
@@ -73,39 +74,15 @@ module trade_module_slave #(
         end else if (fsm_state == S2) begin
             fsm_uart_wait();
         end else begin
-            fsm_change_state(S0);
+            fsm_change_state(S2);
+        end
+        if (sw[10]) begin
+            fsm_state = 8'd2;
         end
     end
 
 
     /* Sending Logic ----------------------------------------------------------*/
-    /* Buffer can be in the main control logic 
-    reg tx_buffer_ctrl_clear = 0;
-    reg [7:0] tx_buffer_type;
-    reg [7:0] tx_buffer_account_id;
-    reg [7:0] tx_buffer_stock_id;
-    reg [7:0] tx_buffer_qty;
-    reg [7:0] tx_buffer_price;
-    always @(posedge clk_100MHz) begin
-        if (tx_buffer_ctrl_clear) begin
-            tx_buffer_type <= parser.TYPE_INVALID;
-        end else if (tx_buffer_ctrl_store) begin
-            tx_buffer_type <= tx_type;
-            tx_buffer_account_id <= tx_account_id;
-            tx_buffer_stock_id <= tx_stock_id;
-            tx_buffer_qty <= tx_qty;
-            tx_buffer_price <= tx_price;
-        end
-    end
-    trade_packet_former 
-        #(
-            .DBITS(DBITS), .UART_FRAME_SIZE(UART_FRAME_SIZE)
-        ) former (
-        .type(tx_buffer_type), .account_id(tx_buffer_account_id), 
-        .stock_id(tx_buffer_stock_id), .qty(tx_buffer_qty), 
-        .price(tx_buffer_price), .uart_tx(uart_tx)
-    );
-    */
     trade_packet_former 
         #(
             .DBITS(DBITS), .UART_FRAME_SIZE(UART_FRAME_SIZE)
@@ -117,6 +94,7 @@ module trade_module_slave #(
 
     task fsm_uart_send();
         begin
+            send_status <= STATUS_PROCESSING;
             uart_rx_clear <= 0;
             if (tx_type == former.TYPE_INVALID) begin
                 // fsm_timer <= 0; // doesn't matter
@@ -132,6 +110,7 @@ module trade_module_slave #(
     endtask
 
     /* Receiving Logic ----------------------------------------------------------*/
+    reg [7:0] extra_state = 0;
     wire [7:0] packet_type;
     wire [7:0] packet_account_id;
     wire [7:0] packet_stock_id;
@@ -152,27 +131,38 @@ module trade_module_slave #(
     
     task fsm_uart_receive();
     begin
+        extra_state <= 8'b11;
         if (tx_type == former.TYPE_INVALID || fsm_timer <= RX_DEBOUNCE) begin
             // do nothing, ignore everything because mode disabled
         end else if (packet_type == parser.TYPE_INVALID) begin
             // do nothing
+            extra_state <= 8'b111;
             if (fsm_timer >= RX_TIMEOUT) begin
                 fsm_change_state(S0);
             end
         end else if (packet_type == parser.TYPE_OK) begin
             // clear buffer for 1 cycle
+            extra_state <= 8'b1111;
             send_status <= STATUS_OK;
             fsm_change_state(S2);
         end else if (packet_type == parser.TYPE_FAIL) begin
             // do nothing
+            extra_state <= 8'b11111;
             send_status <= STATUS_FAIL;
             fsm_change_state(S2);
+        end else begin
+            // do nothing
+            extra_state <= 8'b111;
+            if (fsm_timer >= RX_TIMEOUT) begin
+                fsm_change_state(S0);
+            end
         end
     end
     endtask
 
     task fsm_uart_wait();
     begin
+        extra_state <= 8'b111111;
         if (trigger) begin
             send_status <= STATUS_PROCESSING;
             uart_rx_clear <= 1;
@@ -183,42 +173,63 @@ module trade_module_slave #(
     
     /* Debugging ---------------------------------------------------------------*/
     // parser not working
+    /*
     assign led[15:8] = (
-        sw[4:0] == 0 ? packet_type : ( // Buggy
-        sw[4:0] == 1 ? packet_account_id : (   
-        sw[4:0] == 2 ? packet_stock_id : (
-        sw[4:0] == 3 ? packet_qty : (
-        sw[4:0] == 4 ? packet_price : (
-        sw[4:0] == 5 ? uart_rx[7:0] : (
-        sw[4:0] == 6 ? uart_rx[15:8] : (
-        sw[4:0] == 7 ? uart_rx[23:16] : (
-        sw[4:0] == 8 ? uart_rx[31:24] : (
-        sw[4:0] == 9 ? uart_rx[39:32] : (
-        sw[4:0] == 10 ? uart_rx[47:40] : (
-        sw[4:0] == 11 ? uart_rx[55:48] : (
-        sw[4:0] == 12 ? uart_rx[63:56] : (
+        sw[15:11] == 0 ? packet_type : ( // Buggy
+        sw[15:11] == 1 ? packet_account_id : (   
+        sw[15:11] == 2 ? packet_stock_id : (
+        sw[15:11] == 3 ? packet_qty : (
+        sw[15:11] == 4 ? packet_price : (
+        sw[15:11] == 5 ? uart_rx[7:0] : (
+        sw[15:11] == 6 ? uart_rx[15:8] : (
+        sw[15:11] == 7 ? uart_rx[23:16] : (
+        sw[15:11] == 8 ? uart_rx[31:24] : (
+        sw[15:11] == 9 ? uart_rx[39:32] : (
+        sw[15:11] == 10 ? uart_rx[47:40] : (
+        sw[15:11] == 11 ? uart_rx[55:48] : (
+        sw[15:11] == 12 ? uart_rx[63:56] : (
             ~8'b0
         )))))))))))))
     );
 
     assign led[7:0] = (
-        sw[4:0] == 0 ? tx_type : (
-        sw[4:0] == 1 ? tx_account_id : (   
-        sw[4:0] == 2 ? tx_stock_id : (
-        sw[4:0] == 3 ? tx_qty : (
-        sw[4:0] == 4 ? tx_price : (
-        sw[4:0] == 5 ? uart_tx[7:0] : (
-        sw[4:0] == 6 ? uart_tx[15:8] : (
-        sw[4:0] == 7 ? uart_tx[23:16] : (
-        sw[4:0] == 8 ? uart_tx[31:24] : (
-        sw[4:0] == 9 ? uart_tx[39:32] : (
-        sw[4:0] == 10 ? uart_tx[47:40] : (
-        sw[4:0] == 11 ? uart_tx[55:48] : (
-        sw[4:0] == 12 ? uart_tx[63:56] : (
-        sw[4:0] == 15 ? send_status: (
+        sw[15:11] == 0 ? tx_type : (
+        sw[15:11] == 1 ? tx_account_id : (   
+        sw[15:11] == 2 ? tx_stock_id : (
+        sw[15:11] == 3 ? tx_qty : (
+        sw[15:11] == 4 ? tx_price : (
+        sw[15:11] == 5 ? uart_tx[7:0] : (
+        sw[15:11] == 6 ? uart_tx[15:8] : (
+        sw[15:11] == 7 ? uart_tx[23:16] : (
+        sw[15:11] == 8 ? uart_tx[31:24] : (
+        sw[15:11] == 9 ? uart_tx[39:32] : (
+        sw[15:11] == 10 ? uart_tx[47:40] : (
+        sw[15:11] == 11 ? uart_tx[55:48] : (
+        sw[15:11] == 12 ? uart_tx[63:56] : (
+        sw[15:11] == 15 ? send_status: (
             ~8'b0
         ))))))))))))))
-    );
+    );*/
+    reg [15:0] led_out = 0;
+    assign led = led_out;
+    
+    always @(*) begin
+        if (sw[15:11] == 5'b0000) begin    
+            led_out[15:8] = fsm_state;
+            led_out[7:0] = send_status;
+        end else if (sw[15:11] == 5'b0001) begin    
+            led_out = trigger;
+        end else if (sw[15:11] == 5'b0010) begin    
+            led_out = fsm_timer;
+        end else if (sw[15:11] == 5'b0011) begin    
+            led_out = 0;
+        end else if (sw[15:11] == 5'b0100) begin    
+            led_out = extra_state;
+        end else begin
+            led_out = ~16'b0;
+        end
+    end
+
 endmodule
 
 

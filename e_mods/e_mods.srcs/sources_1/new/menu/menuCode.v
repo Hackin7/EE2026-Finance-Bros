@@ -38,15 +38,6 @@ module menuCode#(
     
     //constants library
     constants constant();
-    wire [12:0] pixel_index = oled_pixel_index;
-    reg [15:0] pixel_data = 16'b0;
-    assign oled_pixel_data = pixel_data;
-    reg [6:0] control_seg;
-    reg control_dp;
-    reg [3:0] control_an;
-    assign seg = control_seg;
-    assign dp = control_dp;
-    assign an = control_an;
     
     //page one
     reg pageOne_reset = 1;
@@ -65,8 +56,14 @@ module menuCode#(
 
 
     /* UART Control --------------------------------------------------------------------*/
-    assign uart_tx_trigger = 0;
-    reg trade_slave_trigger = 1;
+    trade_packet_former trade_packet();
+    reg [7:0] trade_slave_type = trade_packet.TYPE_BUY;
+    reg [7:0] trade_slave_account_id = 0;
+    reg [7:0] trade_slave_stock_id = 0;
+    reg [7:0] trade_slave_qty = 0;
+    reg [7:0] trade_slave_price = 0;
+
+    reg trade_slave_trigger = 0;
     wire [7:0] send_status;
     trade_module_slave 
         #(
@@ -79,14 +76,24 @@ module menuCode#(
         .uart_tx_trigger(uart_tx_trigger),
         .uart_rx_clear(uart_rx_clear),
         // Trade Parameters
-        .tx_type(trade_packet.TYPE_BUY),
-        .tx_account_id(4),
-        .tx_stock_id(1),
-        .tx_qty(2),
-        .tx_price(3),
+        .tx_type(trade_slave_type),
+        .tx_account_id(trade_slave_account_id),
+        .tx_stock_id(trade_slave_stock_id),
+        .tx_qty(trade_slave_qty),
+        .tx_price(trade_slave_price),
         .trigger(trade_slave_trigger),
-        .send_status(send_status)
+        .send_status(send_status), 
+        .led(led), .sw(sw)
     );
+
+    // Logic
+    task trade_module_slave_processing();
+    begin
+        /*if (send_status == trade_module_slave.STATUS_FAIL)
+            trade_slave_trigger <= 1; // retry if fail
+        end*/
+    end
+    endtask
     /* Button Control Code --------------------------------------------------------------*/
     reg prev_btnC=0, prev_btnU=0, prev_btnL=0, prev_btnR=0, prev_btnD=0;
 
@@ -138,21 +145,30 @@ module menuCode#(
     end
     endtask
 
-    assign led[5] = pageOne_done;
-    assign led[4] = pageOne_reset;
-    assign led[3:0] = state;
-    /* --- Trade Handler -------------------------------------------*/
-    trade_packet_former trade_packet();
     task state_add_trade_handle();
     begin
         if (pageOne_done) begin
             state <= STATE_MENU;
             pageOne_reset <= 1;
+            //trade_slave_account_id <= account_id;
+            trade_slave_stock_id <= stock_id;
+            trade_slave_qty <= qty;
+            trade_slave_price <= price;
+            trade_slave_trigger <= 1;
+
+            debounce <= 1;
         end
     end
     endtask
 
+    // Debugger
+    /*assign led[5] = pageOne_done;
+    assign led[4] = pageOne_reset;
+    assign led[3:0] = state;*/
+
+    /* Multiplexer -------------------------------------*/ 
     always @ (posedge clk) begin
+        trade_slave_trigger <= 0;
         if (reset) begin
             state <= 4'd0;
         end else if (state == STATE_INPUT_SLAVE_ID) begin
@@ -166,7 +182,16 @@ module menuCode#(
         button_control();
     end
 
-    /* OLED Layout --------------------------------------------------*/
+    wire [12:0] pixel_index = oled_pixel_index;
+    reg [15:0] pixel_data = 16'b0;
+    assign oled_pixel_data = pixel_data;
+    reg [6:0] control_seg;
+    reg control_dp;
+    reg [3:0] control_an;
+    assign seg = control_seg;
+    assign dp = control_dp;
+    assign an = control_an;
+
     always @ (*) begin
         if (state == STATE_INPUT_SLAVE_ID) begin
             pixel_data <= constant.WHITE;
