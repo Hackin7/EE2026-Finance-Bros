@@ -33,11 +33,41 @@ module module_master #(
     input [UART_FRAME_SIZE*DBITS-1:0] uart_rx,
     output [UART_FRAME_SIZE*DBITS-1:0] uart_tx,
     output uart_tx_trigger,
+    output uart_rx_clear,
     // OLED
     input [12:0] oled_pixel_index, output [15:0] oled_pixel_data,
     // Mouse - NOT NEEDED
     input [11:0] mouse_xpos,  mouse_ypos, input [3:0] mouse_zpos,
     input mouse_left_click, mouse_middle_click, mouse_right_click, mouse_new_event
 );
+
+    parameter NO_STOCKS = 3;
+    parameter BITWIDTH_NO_STOCKS = 2;
+    parameter BITWIDTH_STOCKS_PRICE = 8;
+    parameter BITWIDTH_STOCKS_THRESHOLD = 8;
+    parameter BITWIDTH_STOCKS = BITWIDTH_STOCKS_PRICE + BITWIDTH_STOCKS_THRESHOLD; // 255
+    wire [NO_STOCKS * BITWIDTH_STOCKS - 1 : 0] stocks;
+
+    parameter NO_ACCOUNTS = 3;
+    parameter BITWIDTH_NO_ACCOUNTS = 2;
+    parameter BITWIDTH_ACCT_BALANCE = 32;
+    parameter BITWIDTH_ACCT_STOCKS = 8;
+    parameter BITWIDTH_ACCT = BITWIDTH_ACCT_BALANCE + BITWIDTH_ACCT_STOCKS*NO_STOCKS;
+    wire [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] accounts;
+
+    trade_module_master 
+        #(
+         .DBITS(DBITS), .UART_FRAME_SIZE(UART_FRAME_SIZE)
+        )
+        trade_slave (
+        .clk_100MHz(clk), .reset(),
+        .uart_rx(uart_rx),
+        .uart_tx(uart_tx),
+        .uart_tx_trigger(uart_tx_trigger),
+        .uart_rx_clear(uart_rx_clear),
+        
+        // Debugging Ports
+        .sw(sw), .led(led)
+    );
 endmodule
 

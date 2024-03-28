@@ -39,7 +39,7 @@ module slavePageOne(
     
     
     /* price adjustment code --------------------------------------------------------------*/
-    reg [15:0] key_in_value = 8'd1000;
+    reg [15:0] key_in_value = 16'd1000;
     reg prev_btnC=0, prev_btnU=0, prev_btnL=0, prev_btnR=0, prev_btnD=0;
 
     reg debounce = 0;
@@ -80,16 +80,19 @@ module slavePageOne(
     begin
         if (pageNo == 0) begin
             key_in_value <= 0;
-            pageNo <= pageNo + 1;
+            pageNo <= 1;
             price <= key_in_value;
         end else if (pageNo == 1) begin
             key_in_value <= 0;
-            pageNo <= pageNo + 1;
+            pageNo <= 2;
             qty <= key_in_value;
-            done <= 1;
         end else if (pageNo == 2) begin
             key_in_value <= 0;
-            pageNo <= pageNo + 1;
+            pageNo <= 3;
+        end else if (pageNo == 3) begin
+            key_in_value <= 0;
+            pageNo <= 0;
+            done <= 1;
         end else begin
             pageNo <= 0;
         end
@@ -154,8 +157,27 @@ module slavePageOne(
             end
         end
     endfunction
+
     
     reg [7:0] xpos; reg [7:0] ypos;
+
+    // Text module
+    wire [15:0] text_module_pixel_data;
+    text_dynamic #(13) text_module(
+        .x(xpos), .y(ypos), 
+        .color(constant.WHITE), .background(constant.BLACK), 
+        .text_y_pos(0), .string("SET STOCK ID"), .offset(0), //12*6), 
+        .repeat_flag(0), .x_pos_offset(0), .pixel_data(text_module_pixel_data));
+
+    wire [8*4-1:0] num_string;
+    wire [15:0] text_num_module_pixel_data;
+    text_num_val_mapping text_num_module(key_in_value, num_string);
+    text_dynamic #(4) text_num_display_module(
+        .x(xpos), .y(ypos), 
+        .color(constant.CYAN), .background(constant.BLACK), 
+        .text_y_pos(10), .string(num_string), .offset(0), 
+        .repeat_flag(0), .x_pos_offset(0), .pixel_data(text_num_module_pixel_data));
+
     always @ (*) begin
         xpos = pixel_index % 96;
         ypos = pixel_index / 96;
@@ -206,6 +228,12 @@ module slavePageOne(
                 end else begin
                     pixel_data <= constant.WHITE;
                 end
+            end
+            2: begin
+                pixel_data <= text_module_pixel_data | text_num_module_pixel_data;
+            end
+            3: begin
+                pixel_data <= text_module_pixel_data;
             end
         endcase
         /* --------------------------------------------------------------------------*/
