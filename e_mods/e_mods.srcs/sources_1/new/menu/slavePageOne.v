@@ -67,7 +67,6 @@ module slavePageOne(
             end
 
             if (prev_btnC == 1 && btnC == 0) begin
-                
                 nextState();
             end
             prev_btnC <= btnC; prev_btnU <= btnU; prev_btnL <= btnL; 
@@ -99,8 +98,11 @@ module slavePageOne(
         if (reset) begin
             pageNo <= 4'd0;
             key_in_value <= 2000;
-        end 
-        button_control();
+            done <= 1'b0;
+            prev_btnC<=0; prev_btnU<=0; prev_btnL<=0; prev_btnR<=0; prev_btnD<=0;
+        end else begin
+            button_control();
+        end
     end
 
     /* OUTPUT ----------------------------------------------------------------------------------------------------*/
@@ -145,7 +147,9 @@ module slavePageOne(
             ) 
             begin
                 draw_letter = char_pattern[24 - ((x - x_start) + (5 * (y - y_start)))];
-            end 
+            end else begin
+                draw_letter= 0;
+            end
         end
     endfunction
     
