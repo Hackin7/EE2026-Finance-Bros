@@ -40,7 +40,7 @@
 // - Many of the variable names have been changed for clarity
 //////////////////////////////////////////////////////////////////////////////////
 
-module uart_module
+module uart_top
     #(
         parameter   
             // UART Params
@@ -71,14 +71,17 @@ module uart_module
         output tx,              // USB-RS232 Tx
     
         // Receiving
+        output rx_full,                 // do not write data to FIFO
+        output rx_empty,                // no data to read from FIFO
         output [DBITS*FIFO_IN_SIZE - 1:0] rx_out,
-        input rx_clear,
-        // Sending
-        input tx_trigger,
-        input [DBITS*FIFO_OUT_SIZE -1 :0] tx_in, //2**FIFO_EXP_IN) -  1
+        output rx_tick,
         
         // Debugging
-        output [DBITS*FIFO_OUT_SIZE - 1:0] tx_fifo_out
+        output [DBITS*FIFO_OUT_SIZE - 1:0] tx_fifo_out,
+        
+        // Sending
+        input tx_trigger,
+        input [DBITS*FIFO_OUT_SIZE -1 :0] tx_in //2**FIFO_EXP_IN) -  1
     );
     
     // Connection Signals
@@ -126,7 +129,7 @@ module uart_module
              .clk(clk_100MHz),
              .write_to_fifo(rx_done_tick),
              .write_data_in(rx_data_out),
-             .write_batch_to_fifo(rx_clear),
+             .write_batch_to_fifo(0),
              .write_batch_data_in(0),
              .read_all_data_out(rx_out),
              .tick(read_tick)  
@@ -176,13 +179,52 @@ module uart_module
          );
     
     always @(posedge clk_100MHz) begin
-        if (tx_trigger) begin
-           count <= FIFO_OUT_SIZE; // Edge
+         if (tx_trigger) begin
+            count <= FIFO_OUT_SIZE; // Edge
         // Debug this part
-        end else if (tx_done_tick != tx_done_tick_latch && tx_done_tick && count != 0) begin
-           count <= count - 1;
-        end
-        tx_done_tick_latch <= tx_done_tick;
+         end else if (tx_done_tick != tx_done_tick_latch && tx_done_tick && count != 0) begin
+            count <= count - 1;
+         end
+         tx_done_tick_latch <= tx_done_tick;
     end
     //////////////////////////////////////////////
+    
+    /*
+    fifo
+        #(
+            .DATA_SIZE(DBITS),
+            .ADDR_SPACE_EXP(FIFO_EXP)
+         )
+         FIFO_RX_UNIT
+         (
+            .clk(clk_100MHz),
+            .reset(reset),
+            .write_to_fifo(rx_done_tick),
+	        .read_from_fifo(read_uart),
+	        .write_data_in(rx_data_out),
+	        .read_data_out(read_data),
+	        .empty(rx_empty),
+	        .full(rx_full)            
+	      );
+	   
+    fifo
+        #(
+            .DATA_SIZE(DBITS),
+            .ADDR_SPACE_EXP(FIFO_EXP)
+         )
+         FIFO_TX_UNIT
+         (
+            .clk(clk_100MHz),
+            .reset(reset),
+            .write_to_fifo(write_uart),
+	        .read_from_fifo(tx_done_tick),
+	        .write_data_in(write_data),
+	        .read_data_out(tx_fifo_out),
+	        .empty(tx_empty),
+	        .full()                // intentionally disconnected
+	      );
+    
+    // Signal Logic
+    assign tx_fifo_not_empty = ~tx_empty;
+    */
 endmodule
