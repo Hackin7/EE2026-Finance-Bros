@@ -7,7 +7,7 @@ This module handles the market code and all the inputs and outputs
 
 module trade_module_master #(
     parameter DBITS=8, UART_FRAME_SIZE=8, 
-    INITIAL_ACCOUNTS='hff_ff_ff_00ffffff___01_00_01_00ffffff___01_00_00_00ffffff,
+    INITIAL_ACCOUNTS='hff_ff_ff_00ffffff___01_00_01_00ffffff___01_00_00_00000fff,
     INITIAL_STOCKS='h00_ff__00_ff__00_0f
 )(
     // Control
@@ -192,8 +192,10 @@ module trade_module_master #(
             uart_rx_clear <= 1;
         end else if (slave_type == parser.TYPE_GET_ACCOUNT_BALANCE) begin
             trade_return_account_balance();
+            uart_rx_clear <= 1;
         end else if (slave_type == parser.TYPE_GET_ACCOUNT_STOCKS) begin
             trade_return_account_stocks();
+            uart_rx_clear <= 1;
         end else begin
             // Do nothing
         end

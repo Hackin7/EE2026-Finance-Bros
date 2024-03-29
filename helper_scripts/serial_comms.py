@@ -35,9 +35,9 @@ def packet_parse(packet):
     packet = {str(packet)}
     type = {packet[1]} -> {type_mapping.get(packet[1])}
     account_id = {packet[2]}
-    stock_id = {packet[3]} 
-    qty = {packet[4]} 
-    price = {packet[5]}
+    stock_id / stock1 = {packet[3]} 
+    qty / stock2 = {packet[4]} 
+    price / stock3 = {packet[5]}
     extra = {packet[6]}
 
     account_salary = {str(packet[2:6])} -> {int.from_bytes(packet[2:6], "big")}
@@ -64,13 +64,15 @@ def fail(account_id=0, stock_id=0, qty=0, price=0):
 def get_account_balance(account_id, stock_id=0, qty=0, price=0):
 	write("["+chr(5)+chr(account_id)+chr(stock_id)+chr(qty)+chr(price)+"A]")
 
+def get_account_stock(account_id, stock_id=0, qty=0, price=0):
+	write("["+chr(6)+chr(account_id)+chr(stock_id)+chr(qty)+chr(price)+"A]")
+
 '''
 from serial_comms import *
 '''
 ser.flushInput()
 #get_account_balance(0)
-buy(0, 0, 1, 15)
-print(packet_read())
 #print(packet_read())
-#send_with_response(lambda: buy(0, 0, 1, 15))
-#send_with_response(lambda: get_account_balance(0))
+send_with_response(lambda: buy(0, 0, 1, 15))
+send_with_response(lambda: get_account_balance(0))
+send_with_response(lambda: get_account_stock(0))
