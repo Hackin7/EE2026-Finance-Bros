@@ -689,15 +689,15 @@ module trade_module_master #(
         sw[15:10] == 1 ? {slave_account_id} : (   
         sw[15:10] == 2 ? {slave_stock_id} : (
         sw[15:10] == 3 ? {slave_qty} : (
-        sw[15:10] == 4 ? {slave_price} : (
-        sw[15:10] == 5 ? uart1_rx[7:0] : (
-        sw[15:10] == 6 ? uart1_rx[15:8] : (
-        sw[15:10] == 7 ? uart1_rx[23:16] : (
-        sw[15:10] == 8 ? uart1_rx[31:24] : (
-        sw[15:10] == 9 ? uart1_rx[39:32] : (
-        sw[15:10] == 10 ? uart1_rx[47:40] : (
-        sw[15:10] == 11 ? uart1_rx[55:48] : (
-        sw[15:10] == 12 ? uart1_rx[63:56] : (
+        sw[15:10] == 4 ? uart1_tx_trigger : (
+        sw[15:10] == 5 ? uart1_tx[7:0] : (
+        sw[15:10] == 6 ? uart1_tx[15:8] : (
+        sw[15:10] == 7 ? uart1_tx[23:16] : (
+        sw[15:10] == 8 ? uart1_tx[31:24] : (
+        sw[15:10] == 9 ? uart1_tx[39:32] : (
+        sw[15:10] == 10 ? uart1_tx[47:40] : (
+        sw[15:10] == 11 ? uart1_tx[55:48] : (
+        sw[15:10] == 12 ? uart1_tx[63:56] : (
         sw[15:10] == 13 ? 'b0 : (
             ~'b0
         ))))))))))))))

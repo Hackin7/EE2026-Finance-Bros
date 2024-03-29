@@ -64,7 +64,6 @@ module top (
     //// UART //////////////////////////////////////////////
     wire rx; assign rx = sw[15] ? rxUSB : rx0; // Receive data to board - send from PC/ master
     wire tx; assign txUSB = tx; assign tx0 = tx;
-    assign tx1 = 1;// testing
 
     parameter DBITS = 8;
     parameter UART_FRAME_SIZE = 8;
