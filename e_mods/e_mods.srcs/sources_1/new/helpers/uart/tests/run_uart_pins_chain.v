@@ -17,4 +17,6 @@ module run_uart_pins_chain (
 );
     assign tx0 = rxUSB;
     assign txUSB = rx0;
+
+    assign led[7:0] = {rx2, tx2, rx1, tx1, rx0, tx0, rxUSB, txUSB};
 endmodule

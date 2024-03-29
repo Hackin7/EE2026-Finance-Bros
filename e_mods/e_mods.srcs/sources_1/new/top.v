@@ -62,7 +62,7 @@ module top (
     );
     //// UART //////////////////////////////////////////////
     //// UART //////////////////////////////////////////////
-    wire rx; assign rx = rxUSB | rx0; // Receive data to board - send from PC/ master
+    wire rx; assign rx = sw[15] ? rxUSB : rx0; // Receive data to board - send from PC/ master
     wire tx; assign txUSB = tx; assign tx0 = tx;
     assign tx1 = 1;// testing
 
@@ -82,7 +82,7 @@ module top (
         UART_UNIT
         (
             .clk_100MHz(clk),
-            .rx(rx0), .tx(tx),
+            .rx(rx), .tx(tx),
             // .rx_full(rx_full), .rx_empty(rx_empty), .rx_tick(rx_tick),
             .rx_out(uart_rx),
             .rx_clear(uart_rx_clear),

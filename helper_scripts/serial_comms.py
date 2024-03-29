@@ -1,10 +1,13 @@
 import serial
-ser = serial.Serial('COM17')  # open serial port
+#port = "COM17"
+port = "COM17"
+ser = serial.Serial(port)  # open serial port
 ser.baudrate = 9600
 print(ser.name)         # check which port was really used
 
 
 def read():
+	ser.flushInput()
 	return ser.read(8)
 
 def write(data):
@@ -79,9 +82,11 @@ from serial_comms import *
 '''
 #get_account_balance(0)
 #print(packet_read())
-#send_with_response(lambda: buy(0, 0, 1, 15))
-#send_with_response(lambda: get_account_balance(0))
-#send_with_response(lambda: get_account_stock(0))
+
+def test_master():
+    send_with_response(lambda: buy(0, 0, 1, 15))
+    send_with_response(lambda: get_account_balance(0))
+    send_with_response(lambda: get_account_stock(0))
 
 ### Testing Trading System
 def approve_buy():
@@ -96,6 +101,8 @@ def return_account():
     send_with_response(lambda: return_account_balance(99))
     return_account_stock(100, 10, 1)
 
-#approve_buy()	
-ok()
+#test_master()
+	
+approve_buy()	
+#ok()
 #return_account()
