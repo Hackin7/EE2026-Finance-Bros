@@ -51,7 +51,7 @@ module menuCode#(
         .clk(clk), .reset(pageOne_reset), .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
         .sw(sw), .pixel_index(oled_pixel_index), .oled_pixel_data(pageOne_pixel_data),
         .seg(pageOne_seg), .dp(pageOne_dp), .an(pageOne_an),
-        .stock_id(stock_id), .price(price), .qty(qty), .done(pageOne_done)
+        .stock_id(stock_id), .price(price), .quantity(qty), .done(pageOne_done)
     );
     
     //menu page
@@ -65,6 +65,14 @@ module menuCode#(
         .clk(clk), .reset(menu_page_reset), .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
         .sw(sw), .pixel_index(oled_pixel_index), .oled_pixel_data(menu_page_pixel_data),
         .seg(menu_seg), .dp(menu_dp), .an(menu_an), .menu_button_state(menu_button_state)
+    );
+    
+    //table page
+    wire [15:0] table_view_pixel_data;
+    wire table_view_reset;
+    slave_table_view table_view(
+        .clk(clk), .reset(table_view_reset), 
+        .pixel_index(oled_pixel_index), .oled_pixel_data(table_view_pixel_data)
     );
 
 
@@ -269,7 +277,7 @@ module menuCode#(
         end else if (state == STATE_FAIL_ADD_TRADE) begin
             pixel_data <= constant.RED;
         end else if (state == STATE_TABLE_VIEW) begin
-            pixel_data <= constant.BLUE;
+            pixel_data <= table_view_pixel_data;
         end else if (state == STATE_CURRENT_TRADE) begin
             pixel_data <= constant.ORANGE;
         end

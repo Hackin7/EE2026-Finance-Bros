@@ -44,7 +44,6 @@ module slaveMenuPage(
     assign an = controlAn;
     
     reg [7:0] xpos; reg [7:0] ypos;
-
     
     function is_border(
         input [7:0] x, input [7:0] y,
@@ -59,18 +58,6 @@ module slaveMenuPage(
             short_range = ( ((x_start == x)||(x_start + x_len == x)) && 
                 (y_start <= y && y < y_start + y_len));
             is_border = long_range || short_range;
-        end
-    endfunction
-
-    function draw_letter(
-            input [7:0] x, input [7:0] y, 
-            input [7:0] x_start, input [7:0] y_start,
-            input [24:0] char_pattern); begin
-        if ((x >= x_start && (x - x_start < 5)) //within x range
-        && (y >= y_start && (y - y_start < 5)) //within y range
-        ) begin
-            draw_letter = char_pattern[24 - ((x - x_start) + (5 * (y - y_start)))];
-            end 
         end
     endfunction
     

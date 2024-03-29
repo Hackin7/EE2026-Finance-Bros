@@ -30,22 +30,22 @@ module slaveTradePage(
     output [6:0] seg, output dp, output [3:0] an,
     output reg [31:0] stock_id, 
     output reg [31:0] price, 
-    output reg [31:0] qty, 
-    output reg done=0
+    output reg [31:0] quantity, 
+    output reg done = 0
     );
     
     
     constants constant();
-    
+    reg [31:0] timeout = 32'd1;
     
     /* price adjustment code --------------------------------------------------------------*/
     reg [15:0] key_in_value = 16'd1000;
     reg prev_btnC=0, prev_btnU=0, prev_btnL=0, prev_btnR=0, prev_btnD=0;
+    reg buy_sell_state;
 
     reg debounce = 0;
     reg debounce_timer = 0;
     parameter DEBOUNCE_TIME = 50_000_000; // 100ms
-    
 
     task button_control();
     begin
@@ -68,7 +68,17 @@ module slaveTradePage(
 
             if (prev_btnC == 1 && btnC == 0) begin
                 nextState();
+                debounce <= 1;
             end
+            
+            if (prev_btnL == 1 && btnL == 0) begin
+                buy_sell_state <= ~buy_sell_state;
+            end
+            
+            if (prev_btnR == 1 && btnR == 0) begin
+                buy_sell_state <= ~buy_sell_state;
+            end
+            
             prev_btnC <= btnC; prev_btnU <= btnU; prev_btnL <= btnL; 
             prev_btnR <= btnR; prev_btnD <= btnD;
         end
@@ -79,19 +89,21 @@ module slaveTradePage(
     task nextState();
     begin
         if (pageNo == 0) begin
+            price <= key_in_value;
             key_in_value <= 0;
             pageNo <= 1;
-            price <= key_in_value;
         end else if (pageNo == 1) begin
+            quantity <= key_in_value;
             key_in_value <= 0;
             pageNo <= 2;
-            qty <= key_in_value;
+
         end else if (pageNo == 2) begin
+            stock_id <= key_in_value;
             key_in_value <= 0;
             pageNo <= 3;
         end else if (pageNo == 3) begin
-            key_in_value <= 0;
-            pageNo <= 0;
+            pageNo <= 4;
+        end else if (pageNo == 4) begin
             done <= 1;
         end else begin
             pageNo <= 0;
@@ -140,43 +152,81 @@ module slaveTradePage(
             is_border = long_range || short_range;
         end
     endfunction
-
-    function draw_letter(
-            input [9:0] x, input [9:0] y, 
-            input [9:0] x_start, input [9:0] y_start,
-            input [24:0] char_pattern
-    ); 
-       begin
-            if ((x >= x_start && (x - x_start < 5)) //within x range
-            && (y >= y_start && (y - y_start < 5)) //within y range
-            ) 
-            begin
-                draw_letter = char_pattern[24 - ((x - x_start) + (5 * (y - y_start)))];
-            end else begin
-                draw_letter= 0;
-            end
-        end
-    endfunction
-
-    
+        
     reg [7:0] xpos; reg [7:0] ypos;
 
     // Text module
-    wire [15:0] text_module_pixel_data;
-    text_dynamic #(12) text_module(
+    wire [15:0] price_pixel_data;
+    text_dynamic #(9) price_module(
         .x(xpos), .y(ypos), 
         .color(constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(0), .string("SET STOCK ID"), .offset(0), //12*6), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(text_module_pixel_data));
-
-    wire [8*4-1:0] num_string;
-    wire [15:0] text_num_module_pixel_data;
-    text_num_val_mapping text_num_module(key_in_value, num_string);
+        .text_y_pos(0), .string("SET PRICE"), .offset(0), //12*6), 
+        .repeat_flag(0), .x_pos_offset(0), .pixel_data(price_pixel_data));
+        
+    wire [8*4-1:0] price_num;
+    wire [15:0] price_num_pixel_data;
+    text_num_val_mapping price_num_module(key_in_value, price_num);
     text_dynamic #(4) text_num_display_module(
         .x(xpos), .y(ypos), 
         .color(constant.CYAN), .background(constant.BLACK), 
-        .text_y_pos(10), .string(num_string), .offset(0), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(text_num_module_pixel_data));
+        .text_y_pos(10), .string(price_num), .offset(0), 
+        .repeat_flag(0), .x_pos_offset(0), .pixel_data(price_num_pixel_data));
+
+    wire [15:0] quantity_pixel_data;
+    text_dynamic #(12) text_module(
+        .x(xpos), .y(ypos), 
+        .color(constant.WHITE), .background(constant.BLACK), 
+        .text_y_pos(0), .string("SET QUANTITY"), .offset(0), //12*6), 
+        .repeat_flag(0), .x_pos_offset(0), .pixel_data(quantity_pixel_data));
+        
+    wire [8*4-1:0] quantity_num;
+    wire [15:0] quantity_num_pixel_data;
+    text_num_val_mapping text_num_module(key_in_value, quantity_num);
+    text_dynamic #(4) quantity_num_display_module(
+        .x(xpos), .y(ypos), 
+        .color(constant.CYAN), .background(constant.BLACK), 
+        .text_y_pos(10), .string(quantity_num), .offset(0), 
+        .repeat_flag(0), .x_pos_offset(0), .pixel_data(quantity_num_pixel_data));
+    
+    wire [15:0] set_stock_pixel_data;
+    text_dynamic #(12) stock_module(
+        .x(xpos), .y(ypos), 
+        .color(constant.WHITE), .background(constant.BLACK), 
+        .text_y_pos(0), .string("SET STOCK ID"), .offset(0), //12*6), 
+        .repeat_flag(0), .x_pos_offset(0), .pixel_data(set_stock_pixel_data));
+
+    wire [8*4-1:0] stock_num;
+    wire [15:0] stock_num_pixel_data;
+    text_num_val_mapping stock_num_module(key_in_value, stock_num);
+    text_dynamic #(4) stock_num_display_module(
+        .x(xpos), .y(ypos), 
+        .color(constant.CYAN), .background(constant.BLACK), 
+        .text_y_pos(10), .string(stock_num), .offset(0), 
+        .repeat_flag(0), .x_pos_offset(0), .pixel_data(stock_num_pixel_data));
+    
+    wire [15:0] select_pixel_data;
+    text_dynamic #(6) select_module(
+        .x(xpos), .y(ypos), 
+        .color(constant.WHITE), .background(constant.BLACK), 
+        .text_y_pos(0), .string("SELECT"), .offset(0), //12*6), 
+        .repeat_flag(0), .x_pos_offset(0), .pixel_data(select_pixel_data));    
+        
+    wire [15:0] buy_pixel_data;
+    text_dynamic #(3) buy_module(
+        .x(xpos), .y(ypos), 
+        .color(buy_sell_state == 0 ? constant.RED : constant.WHITE), .background(constant.BLACK), 
+        .text_y_pos(10), .string("BUY"), .offset(0), //12*6), 
+        .repeat_flag(0), .x_pos_offset(0), .pixel_data(buy_pixel_data));
+                
+    wire [15:0] sell_pixel_data;
+    text_dynamic #(4) sell_module(
+        .x(xpos), .y(ypos), 
+        .color(buy_sell_state == 1 ? constant.RED : constant.WHITE), .background(constant.BLACK), 
+        .text_y_pos(0), .string("SELL"), .offset(0), //12*6), 
+        .repeat_flag(0), .x_pos_offset(0), .pixel_data(sell_pixel_data));
+        
+    wire [15:0] done_pixel_data;
+    view_packet view_packet_data(price, quantity, stock_id, pixel_index, done_pixel_data);
 
     always @ (*) begin
         xpos = pixel_index % 96;
@@ -184,113 +234,22 @@ module slaveTradePage(
         
         case (pageNo)
             0: begin
-                if ((xpos > 25 && xpos < 31) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 26, 30, constant.charS) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 31 && xpos < 37) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 32, 30, constant.charE) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 37 && xpos < 43) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 38, 30, constant.charT) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 49 && xpos < 55) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 50, 30, constant.charP) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 55 && xpos < 61) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 56, 30, constant.charR) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 61 && xpos < 67) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 62, 30, constant.charI) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 67 && xpos < 73) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 68, 30, constant.charC) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 73 && xpos < 79) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 74, 30, constant.charE) ? constant.BLACK : constant.WHITE;
-                end else pixel_data <= constant.WHITE;
+                pixel_data <= price_pixel_data | price_num_pixel_data;
             end
             1: begin
-                if ((xpos > 5 && xpos < 11) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 6, 30, constant.charS) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 11 && xpos < 17) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 12, 30, constant.charE) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 17 && xpos < 23) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 18, 30, constant.charT) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 29 && xpos < 35) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 30, 30, constant.charQ) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 35 && xpos < 41) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 36, 30, constant.charU) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 41 && xpos < 47) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 42, 30, constant.charA) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 47 && xpos < 53) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 48, 30, constant.charN) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 53 && xpos < 59) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 54, 30, constant.charT) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 59 && xpos < 65) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 60, 30, constant.charI) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 65 && xpos < 71) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 66, 30, constant.charT) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 71 && xpos < 77) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 72, 30, constant.charY) ? constant.BLACK : constant.WHITE;
-                end else begin
-                    pixel_data <= constant.WHITE;
-                end
+                pixel_data <= quantity_pixel_data | quantity_num_pixel_data;
             end
             2: begin
-                pixel_data <= text_module_pixel_data | text_num_module_pixel_data;
+                pixel_data <= set_stock_pixel_data | stock_num_pixel_data;
             end
             3: begin
-                pixel_data <= text_module_pixel_data;
-                if ((xpos > 5 && xpos < 11) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 6, 30, constant.charS) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 11 && xpos < 17) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 12, 30, constant.charE) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 17 && xpos < 23) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 18, 30, constant.charT) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 29 && xpos < 35) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 30, 30, constant.charS) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 35 && xpos < 41) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 36, 30, constant.charT) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 41 && xpos < 47) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 42, 30, constant.charO) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 47 && xpos < 53) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 48, 30, constant.charC) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 53 && xpos < 59) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 54, 30, constant.charK) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 65 && xpos < 71) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 66, 30, constant.charN) ? constant.BLACK : constant.WHITE;
-                end else if ((xpos > 71 && xpos < 77) && (ypos > 29 && ypos < 35)) begin
-                    pixel_data <= draw_letter(xpos, ypos, 72, 30, constant.charO) ? constant.BLACK : constant.WHITE;
-                end else begin
-                    pixel_data <= constant.WHITE;
-                end
+                pixel_data <= buy_pixel_data | sell_pixel_data;
+            end
+            4: begin
+                pixel_data <= done_pixel_data;
             end
         endcase
         /* --------------------------------------------------------------------------*/
-        /*
-        sample code for button
-        if (is_border(xpos, ypos, 8, 8, 33, 9)) begin
-                pixel_data <= btnState == 8'd0 ? constant.GREEN : constant.BLACK;
-            end else if ((xpos > 10 && xpos < 16) && (ypos > 10 && ypos < 16)) begin
-                pixel_data <= draw_letter(xpos, ypos, 11, 11, constant.charS) ? constant.RED : constant.WHITE;
-            end else if ((xpos > 16 && xpos < 22) && (ypos > 10 && ypos < 16)) begin
-                pixel_data <= draw_letter(xpos, ypos, 17, 11, constant.charL) ? constant.RED : constant.WHITE;
-            end else if ((xpos > 22 && xpos < 28) && (ypos > 10 && ypos < 16)) begin
-                pixel_data <= draw_letter(xpos, ypos, 23, 11, constant.charA) ? constant.RED : constant.WHITE;
-            end else if ((xpos > 28 && xpos < 34) && (ypos > 10 && ypos < 16)) begin
-                pixel_data <= draw_letter(xpos, ypos, 29, 11, constant.charV) ? constant.RED : constant.WHITE;
-            end else if ((xpos > 34 && xpos < 40) && (ypos > 10 && ypos < 16)) begin
-                pixel_data <= draw_letter(xpos, ypos, 35, 11, constant.charE) ? constant.RED : constant.WHITE;
-            end else if (is_border(xpos, ypos, 45, 8, 39, 9)) begin
-                pixel_data <= btnState == 8'd1 ? constant.GREEN : constant.BLACK;
-            end else if ((xpos > 47 && xpos < 53) && (ypos > 10 && ypos < 16)) begin
-                pixel_data <= draw_letter(xpos, ypos, 48, 11, constant.charM) ? constant.BLUE : constant.WHITE;
-            end else if ((xpos > 53 && xpos < 59) && (ypos > 10 && ypos < 16)) begin
-                pixel_data <= draw_letter(xpos, ypos, 54, 11, constant.charA) ? constant.BLUE : constant.WHITE;
-            end else if ((xpos > 59 && xpos < 65) && (ypos > 10 && ypos < 16)) begin
-                pixel_data <= draw_letter(xpos, ypos, 60, 11, constant.charS) ? constant.BLUE : constant.WHITE;
-            end else if ((xpos > 65 && xpos < 71) && (ypos > 10 && ypos < 16)) begin
-                pixel_data <= draw_letter(xpos, ypos, 66, 11, constant.charT) ? constant.BLUE : constant.WHITE;
-            end else if ((xpos > 71 && xpos < 77) && (ypos > 10 && ypos < 16)) begin
-                pixel_data <= draw_letter(xpos, ypos, 72, 11, constant.charE) ? constant.BLUE : constant.WHITE;
-            end else if ((xpos > 77 && xpos < 83) && (ypos > 10 && ypos < 16)) begin
-                pixel_data <= draw_letter(xpos, ypos, 78, 11, constant.charR) ? constant.BLUE : constant.WHITE;
-            end else pixel_data <= constant.WHITE;
-        end
-    */
     end
     
 endmodule
