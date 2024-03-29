@@ -148,13 +148,15 @@ module trade_module_master #(
     reg [7:0] master_stock_id=0;
     reg [7:0] master_qty=0;
     reg [7:0] master_price=0;
+    reg [31:0] master_balance=0;
     trade_packet_former 
         #(
             .DBITS(DBITS), .UART_FRAME_SIZE(UART_FRAME_SIZE)
         ) former (
         .type(master_type), .account_id(master_account_id), 
         .stock_id(master_stock_id), .qty(master_qty), 
-        .price(master_price), .uart_tx(uart_tx)
+        .price(master_price), .balance(master_balance), 
+        .uart_tx(uart_tx)
     );
 
     /* --- UART Receiver -------------------------------------------------------------------------- */
@@ -188,6 +190,10 @@ module trade_module_master #(
         end else if (slave_type == parser.TYPE_SELL) begin
             trade_approve_sell();
             uart_rx_clear <= 1;
+        end else if (slave_type == parser.TYPE_GET_ACCOUNT_BALANCE) begin
+            trade_return_account_balance();
+        end else if (slave_type == parser.TYPE_GET_ACCOUNT_STOCKS) begin
+            trade_return_account_stocks();
         end else begin
             // Do nothing
         end
@@ -279,6 +285,31 @@ module trade_module_master #(
     end
     endtask
 
+    task trade_return_account_balance();
+    begin
+         // Comms ----------------------------------------
+        // Send OK Packet
+        master_type <= former.TYPE_RETURN_ACCOUNT_BALANCE;
+        master_balance <= account_get_balance(slave_account_id);
+        uart_tx_trigger <= 1;
+    end
+    endtask
+
+    task trade_return_account_stocks();
+    begin
+         // Comms ----------------------------------------
+        // Send OK Packet
+        master_type <= former.TYPE_RETURN_ACCOUNT_STOCKS;
+        master_balance <= {
+            account_get_stock(slave_account_id, 0),
+            account_get_stock(slave_account_id, 1),
+            account_get_stock(slave_account_id, 2),
+            8'b0
+        };
+        uart_tx_trigger <= 1;
+    end
+    endtask
+
     /* --- Market Movement -------------------------------------------------------------- */
     
     task market_movement_one(
@@ -320,21 +351,22 @@ module trade_module_master #(
     assign debug_stocks = stocks;
     assign debug_admin_fees = admin_fees;
     assign led[15:0] = (
-        sw[15:0] == 0 ? {slave_type} : ( // Buggy
-        sw[15:0] == 1 ? {slave_account_id} : (   
-        sw[15:0] == 2 ? {slave_stock_id} : (
-        sw[15:0] == 3 ? {slave_qty} : (
-        sw[15:0] == 4 ? {slave_price} : (
-        sw[15:0] == 5 ? uart_rx[7:0] : (
-        sw[15:0] == 6 ? uart_rx[15:8] : (
-        sw[15:0] == 7 ? uart_rx[23:16] : (
-        sw[15:0] == 8 ? uart_rx[31:24] : (
-        sw[15:0] == 9 ? uart_rx[39:32] : (
-        sw[15:0] == 10 ? uart_rx[47:40] : (
-        sw[15:0] == 11 ? uart_rx[55:48] : (
-        sw[15:0] == 12 ? uart_rx[63:56] : (
+        sw[15:10] == 0 ? {slave_type} : ( // Buggy
+        sw[15:10] == 1 ? {slave_account_id} : (   
+        sw[15:10] == 2 ? {slave_stock_id} : (
+        sw[15:10] == 3 ? {slave_qty} : (
+        sw[15:10] == 4 ? {slave_price} : (
+        sw[15:10] == 5 ? uart_rx[7:0] : (
+        sw[15:10] == 6 ? uart_rx[15:8] : (
+        sw[15:10] == 7 ? uart_rx[23:16] : (
+        sw[15:10] == 8 ? uart_rx[31:24] : (
+        sw[15:10] == 9 ? uart_rx[39:32] : (
+        sw[15:10] == 10 ? uart_rx[47:40] : (
+        sw[15:10] == 11 ? uart_rx[55:48] : (
+        sw[15:10] == 12 ? uart_rx[63:56] : (
+        sw[15:10] == 13 ? 'b0 : (
             ~'b0
-        )))))))))))))
+        ))))))))))))))
     );
 endmodule
 

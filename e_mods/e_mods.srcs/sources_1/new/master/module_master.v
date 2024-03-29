@@ -73,6 +73,13 @@ module module_master #(
     );
 
      /* --- Account ----------------------------------------------*/
+     function [BITWIDTH_STOCKS_PRICE-1:0] stock_get_price(
+        input [BITWIDTH_NO_STOCKS-1:0] index
+    );
+        begin
+            stock_get_price = stocks >> (BITWIDTH_STOCKS*index);
+        end
+    endfunction
     function [BITWIDTH_ACCT_BALANCE-1:0] account_get_balance(
         input [BITWIDTH_NO_ACCOUNTS-1:0] index
     );
@@ -133,9 +140,9 @@ module module_master #(
     text_num_val_mapping text_num1_module(account_get_balance(0), num_string1);
     text_num_val_mapping text_num2_module(account_get_balance(1), num_string2);
     text_num_val_mapping text_num3_module(account_get_balance(2), num_string3);
-    text_num_val_mapping text_num4_module(account_get_stock(0, 0), num_string4);
-    text_num_val_mapping text_num5_module(account_get_stock(1, 0), num_string5);
-    text_num_val_mapping text_num6_module(account_get_stock(2, 0), num_string6);
+    text_num_val_mapping text_num4_module(stock_get_price(0), num_string4);
+    text_num_val_mapping text_num5_module(stock_get_price(1), num_string5);
+    text_num_val_mapping text_num6_module(stock_get_price(2), num_string6);
 
 
     wire [15:0] num1_pixel_data;
@@ -147,10 +154,19 @@ module module_master #(
         .offset(0), 
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(num1_pixel_data));
 
+    wire [15:0] num2_pixel_data;
+    text_dynamic #(14) text_num2_display_module(
+        .x(xpos), .y(ypos), 
+        .color(constant.CYAN), .background(constant.BLACK), 
+        .text_y_pos(20), 
+        .string({num_string4, " ", num_string5, " ", num_string6}), 
+        .offset(0), 
+        .repeat_flag(0), .x_pos_offset(0), .pixel_data(num2_pixel_data));
+
     always @ (*) begin
         xpos = oled_pixel_index % 96;
         ypos = oled_pixel_index / 96;
-        oled_pixel_data <= num1_pixel_data;
+        oled_pixel_data <= num1_pixel_data | num2_pixel_data;
     end
 endmodule
 
