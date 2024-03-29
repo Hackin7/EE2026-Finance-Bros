@@ -230,10 +230,36 @@ module slavePageOne(
                 end
             end
             2: begin
+<<<<<<< Updated upstream
                 pixel_data <= text_module_pixel_data | text_num_module_pixel_data;
             end
             3: begin
                 pixel_data <= text_module_pixel_data;
+=======
+                if ((xpos > 5 && xpos < 11) && (ypos > 29 && ypos < 35)) begin
+                    pixel_data <= draw_letter(xpos, ypos, 6, 30, constant.charS) ? constant.BLACK : constant.WHITE;
+                end else if ((xpos > 11 && xpos < 17) && (ypos > 29 && ypos < 35)) begin
+                    pixel_data <= draw_letter(xpos, ypos, 12, 30, constant.charE) ? constant.BLACK : constant.WHITE;
+                end else if ((xpos > 17 && xpos < 23) && (ypos > 29 && ypos < 35)) begin
+                    pixel_data <= draw_letter(xpos, ypos, 18, 30, constant.charT) ? constant.BLACK : constant.WHITE;
+                end else if ((xpos > 29 && xpos < 35) && (ypos > 29 && ypos < 35)) begin
+                    pixel_data <= draw_letter(xpos, ypos, 30, 30, constant.charS) ? constant.BLACK : constant.WHITE;
+                end else if ((xpos > 35 && xpos < 41) && (ypos > 29 && ypos < 35)) begin
+                    pixel_data <= draw_letter(xpos, ypos, 36, 30, constant.charT) ? constant.BLACK : constant.WHITE;
+                end else if ((xpos > 41 && xpos < 47) && (ypos > 29 && ypos < 35)) begin
+                    pixel_data <= draw_letter(xpos, ypos, 42, 30, constant.charO) ? constant.BLACK : constant.WHITE;
+                end else if ((xpos > 47 && xpos < 53) && (ypos > 29 && ypos < 35)) begin
+                    pixel_data <= draw_letter(xpos, ypos, 48, 30, constant.charC) ? constant.BLACK : constant.WHITE;
+                end else if ((xpos > 53 && xpos < 59) && (ypos > 29 && ypos < 35)) begin
+                    pixel_data <= draw_letter(xpos, ypos, 54, 30, constant.charK) ? constant.BLACK : constant.WHITE;
+                end else if ((xpos > 65 && xpos < 71) && (ypos > 29 && ypos < 35)) begin
+                    pixel_data <= draw_letter(xpos, ypos, 66, 30, constant.charN) ? constant.BLACK : constant.WHITE;
+                end else if ((xpos > 71 && xpos < 77) && (ypos > 29 && ypos < 35)) begin
+                    pixel_data <= draw_letter(xpos, ypos, 72, 30, constant.charO) ? constant.BLACK : constant.WHITE;
+                end else begin
+                    pixel_data <= constant.WHITE;
+                end
+>>>>>>> Stashed changes
             end
         endcase
         /* --------------------------------------------------------------------------*/
