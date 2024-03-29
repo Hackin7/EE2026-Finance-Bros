@@ -35,6 +35,10 @@ module trade_module_slave #(
     input [7:0] tx_price,
     input trigger,
     output reg [7:0] send_status=0,
+    output [31:0] balance, 
+    output [7:0] stock1,
+    output [7:0] stock2,
+    output [7:0] stock3,
 
     // Debugging //////////////////////////////////////////////////////////
     // Control
@@ -52,6 +56,7 @@ module trade_module_slave #(
     parameter STATUS_PROCESSING = 8'd1;
     parameter STATUS_OK = 8'd2;
     parameter STATUS_FAIL = 8'd3;
+    parameter STATUS_RETRIEVED = 8'd4;
     //reg [7:0] fsm_state = 0;
     //reg [32-1:0] fsm_timer = 0;
 
@@ -101,7 +106,8 @@ module trade_module_slave #(
             /*end else if (packet_type == parser.TYPE_OK) begin // Catch any sudden receive - will ignore for now
                 // clear buffer for 1 cycle
                 send_status <= STATUS_OK;
-                fsm_change_state(S2); */
+                ; */
+                fsm_change_state(S2);
             end else begin
                 uart_tx_trigger <= 1; // Trigger on for 1 clock cycle
                 fsm_change_state(S1);
@@ -126,14 +132,23 @@ module trade_module_slave #(
         .account_id(packet_account_id), 
         .stock_id(packet_stock_id), 
         .qty(packet_qty), 
-        .price(packet_price)
+        .price(packet_price), 
+        .balance(balance)
     );
+    assign stock1 = packet_account_id;
+    assign stock2 = 999;
+    assign stock3 = packet_price;
     
     task fsm_uart_receive();
     begin
         extra_state <= 8'b11;
-        if (tx_type == former.TYPE_INVALID || fsm_timer <= RX_DEBOUNCE) begin
-            // do nothing, ignore everything because mode disabled
+        if (tx_type == former.TYPE_INVALID) begin 
+            // Not sending anything 
+            // Reset to idle state
+            //send_status <= STATUS_IDLE;
+            fsm_change_state(S2);
+        end else if (fsm_timer <= RX_DEBOUNCE) begin
+            // Ignore because waiting
         end else if (packet_type == parser.TYPE_INVALID) begin
             // do nothing
             extra_state <= 8'b111;
@@ -149,6 +164,16 @@ module trade_module_slave #(
             // do nothing
             extra_state <= 8'b11111;
             send_status <= STATUS_FAIL;
+            fsm_change_state(S2);
+        end else if (packet_type == parser.TYPE_RETURN_ACCOUNT_BALANCE) begin
+            // clear buffer for 1 cycle
+            extra_state <= 8'b1111;
+            send_status <= STATUS_RETRIEVED;
+            fsm_change_state(S2);
+        end else if (packet_type == parser.TYPE_RETURN_ACCOUNT_STOCKS) begin
+            // clear buffer for 1 cycle
+            extra_state <= 8'b1111;
+            send_status <= STATUS_RETRIEVED;
             fsm_change_state(S2);
         end else begin
             // do nothing
@@ -223,9 +248,13 @@ module trade_module_slave #(
         end else if (sw[15:11] == 5'b0010) begin    
             led_out = fsm_timer;
         end else if (sw[15:11] == 5'b0011) begin    
-            led_out = 0;
+            led_out = {packet_type, packet_account_id};
         end else if (sw[15:11] == 5'b0100) begin    
             led_out = extra_state;
+        end else if (sw[15:11] == 5'b101) begin    
+            led_out = {packet_stock_id, packet_account_id};
+        end else if (sw[15:11] == 5'b111) begin    
+            led_out = {packet_qty, packet_price};
         end else begin
             led_out = ~16'b0;
         end

@@ -68,17 +68,33 @@ module menuCode#(
     );
     
     //table page
-    wire [15:0] table_view_pixel_data;
+    reg [3:0] self_status_state = 0;
+    wire [8*4-1:0] self_status_state_string;
+    text_num_val_mapping text_num1_module(self_status_state, self_status_state_string);
+    wire [15:0] table_view_loading_pixel_data;
+    wire [7:0] xpos = oled_pixel_index % 96; wire [7:0] ypos = oled_pixel_index / 96;
+    text_dynamic #(12) table_view_loading(
+        .x(xpos), .y(ypos), 
+        .color(constant.WHITE), .background(constant.BLACK), 
+        .text_y_pos(56), .string({"LOADING ", self_status_state_string}), .offset(0), //9*6), 
+        .repeat_flag(0), .x_pos_offset(0), .pixel_data(table_view_loading_pixel_data));
+    
+    wire [15:0] table_view_ready_pixel_data;
+    reg [31:0] table_balance = 0;
+    reg [7:0] table_stock1 = 10;
+    reg [7:0] table_stock2 = 999;
+    reg [7:0] table_stock3 = 999;
     wire table_view_reset;
     slave_table_view table_view(
         .clk(clk), .reset(table_view_reset), 
-        .pixel_index(oled_pixel_index), .oled_pixel_data(table_view_pixel_data)
+        .pixel_index(oled_pixel_index), .oled_pixel_data(table_view_ready_pixel_data), 
+        .num1(trade_slave_account_id), .num2(table_balance), .num3(table_stock1), .num4(table_stock2), .num5(table_stock3), .num6(0)
     );
-
+    wire [15:0] table_view_pixel_data = table_view_ready_pixel_data | (self_status_state != 3 ? table_view_loading_pixel_data : 0);
 
     /* UART Control --------------------------------------------------------------------*/
     trade_packet_former trade_packet();
-    reg [7:0] trade_slave_type = trade_packet.TYPE_BUY;
+    reg [7:0] trade_slave_type = trade_packet.TYPE_INVALID;
     reg [7:0] trade_slave_account_id = 0;
     reg [7:0] trade_slave_stock_id = 0;
     reg [7:0] trade_slave_qty = 0;
@@ -86,6 +102,10 @@ module menuCode#(
 
     reg trade_slave_trigger = 0;
     wire [7:0] trade_slave_send_status;
+    wire [31:0] trade_slave_get_balance;
+    wire [7:0] trade_slave_get_stock1;
+    wire [7:0] trade_slave_get_stock2;
+    wire [7:0] trade_slave_get_stock3;
     trade_module_slave 
         #(
          .DBITS(DBITS), .UART_FRAME_SIZE(UART_FRAME_SIZE), .RX_TIMEOUT(100_000_000)
@@ -104,6 +124,10 @@ module menuCode#(
         .tx_price(trade_slave_price),
         .trigger(trade_slave_trigger),
         .send_status(trade_slave_send_status), 
+        .balance(trade_slave_get_balance),
+        .stock1(trade_slave_get_stock1),
+        .stock2(trade_slave_get_stock2),
+        .stock3(trade_slave_get_stock3),
         .led(led), .sw(sw)
     );
 
@@ -117,6 +141,7 @@ module menuCode#(
             trade_slave_trigger <= 1; // retry if fail
         end else if (trade_slave_send_status == trade_slave.STATUS_OK) begin
             trade_module_send_success <= TRADE_SUCCESS_SHOW; // show success screen
+            trade_slave_type <= trade_packet.TYPE_INVALID; // label that it is not sending anymore
         end
     end
     endtask
@@ -176,16 +201,17 @@ module menuCode#(
                 end
             end
             if (prev_btnU == 1 && btnU == 0) begin
-                menu_button_state <= menu_button_state - 1;
+                menu_button_state <= menu_button_state == 0 ? 0 : menu_button_state - 1;
                 debounce <= 1;
             end
             if (prev_btnD == 1 && btnD == 0) begin
-                menu_button_state <= menu_button_state + 1;
+                menu_button_state <= menu_button_state == 2 ? 2 :  menu_button_state + 1;
                 debounce <= 1;
             end
         end
     end
     endtask
+
 
     task state_add_trade_handle();
     begin
@@ -193,6 +219,7 @@ module menuCode#(
             state <= STATE_MENU;
             pageOne_reset <= 1;
             //trade_slave_account_id <= account_id;
+            trade_slave_type <= trade_packet.TYPE_BUY;
             trade_slave_stock_id <= stock_id;
             trade_slave_qty <= qty;
             trade_slave_price <= price;
@@ -206,19 +233,57 @@ module menuCode#(
     task state_table_handle();
     begin
         if (!debounce) begin
-            if (prev_btnC == 1 && btnC == 0) begin
+            if (prev_btnL == 1 && btnL == 0) begin
                 state <= STATE_MENU;
+                self_status_state <= 0;
+                trade_slave_type <= prev_trade_slave_type; // label that it is not sending anymore
+                trade_slave_trigger <= 1;
                 debounce <= 1;
             end
         end
+        if (self_status_state == 0) begin // Initialise Loading
+                prev_trade_slave_type <= trade_slave_type;
+                trade_slave_type <= trade_packet.TYPE_GET_ACCOUNT_BALANCE;
+                trade_slave_trigger <= 1;
+                self_status_state <= 1;
+            end else if (self_status_state == 1) begin // Wait for other balance
+                if (trade_slave_send_status == trade_slave.STATUS_RETRIEVED) begin
+                    table_balance <= trade_slave_get_balance;
+                    trade_slave_type <= trade_packet.TYPE_GET_ACCOUNT_STOCKS; // label that it is not sending anymore
+                    trade_slave_trigger <= 1;
+                    self_status_state <= 3;
+                end
+            end else if (self_status_state == 2) begin
+                if (trade_slave_send_status == trade_slave.STATUS_RETRIEVED) begin
+                    table_stock1 <= trade_slave_get_stock1;
+                    table_stock2 <= trade_slave_get_stock2;
+                    table_stock3 <= trade_slave_get_stock3;
+                    trade_slave_type <= prev_trade_slave_type; // label that it is not sending anymore
+                    trade_slave_trigger <= 1;
+                    self_status_state <= 3;
+                end
+            end else if (self_status_state == 3) begin
+                if (!debounce) begin
+                    if (prev_btnC == 1 && btnC == 0) begin
+                        state <= STATE_MENU;
+                        self_status_state <= 0;
+                        debounce <= 1;
+                    end
+                end
+            end else begin
+                self_status_state <= 0; // reload state
+            end
     end
     endtask
+    
+    reg [7:0] prev_trade_slave_type;
     
     task state_current_trade_handle();
         begin
             if (!debounce) begin
                 if (prev_btnC == 1 && btnC == 0) begin
                     state <= STATE_MENU;
+                    self_status_state <= 0;
                     debounce <= 1;
                 end
             end
@@ -247,6 +312,8 @@ module menuCode#(
         end
         button_control();
         trade_module_slave_processing();
+        if  (sw[9]) 
+            trade_slave_trigger <= 1;
     end
 
     wire [12:0] pixel_index = oled_pixel_index;

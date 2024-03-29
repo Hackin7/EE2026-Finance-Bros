@@ -67,12 +67,32 @@ def get_account_balance(account_id, stock_id=0, qty=0, price=0):
 def get_account_stock(account_id, stock_id=0, qty=0, price=0):
 	write("["+chr(6)+chr(account_id)+chr(stock_id)+chr(qty)+chr(price)+"A]")
 
+def return_account_balance(balance=0):
+	#print(balance.to_bytes(2, 'big'))
+	write("["+chr(7)+(balance.to_bytes(4, 'big')).decode()+"A]")
+	
+def return_account_stock(stock1=0, stock2=0, stock3=0):
+	write("["+chr(8)+chr(stock1)+chr(stock2)+chr(stock3)+chr(0)+"A]")
+
 '''
 from serial_comms import *
 '''
-ser.flushInput()
 #get_account_balance(0)
 #print(packet_read())
-send_with_response(lambda: buy(0, 0, 1, 15))
-send_with_response(lambda: get_account_balance(0))
-send_with_response(lambda: get_account_stock(0))
+#send_with_response(lambda: buy(0, 0, 1, 15))
+#send_with_response(lambda: get_account_balance(0))
+#send_with_response(lambda: get_account_stock(0))
+
+### Testing Trading System
+def approve_buy():
+    print(packet_read())
+    ok()
+
+
+### Testing retrieval of balance
+def return_account():
+    print(packet_read())
+    send_with_response(lambda: return_account_balance(99))
+    return_account_stock(1, 10, 10)
+	
+return_account();
