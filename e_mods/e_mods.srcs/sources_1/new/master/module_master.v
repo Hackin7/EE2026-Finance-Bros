@@ -34,6 +34,16 @@ module module_master #(
     output [UART_FRAME_SIZE*DBITS-1:0] uart_tx,
     output uart_tx_trigger,
     output uart_rx_clear,
+
+    input [UART_FRAME_SIZE*DBITS-1:0] uart1_rx,
+    output [UART_FRAME_SIZE*DBITS-1:0] uart1_tx,
+    output uart1_tx_trigger,
+    output uart1_rx_clear,
+    
+    input [UART_FRAME_SIZE*DBITS-1:0] uart2_rx,
+    output [UART_FRAME_SIZE*DBITS-1:0] uart2_tx,
+    output uart2_tx_trigger,
+    output uart2_rx_clear,
     // OLED
     input [12:0] oled_pixel_index, output reg [15:0] oled_pixel_data,
     // Mouse - NOT NEEDED
@@ -61,10 +71,17 @@ module module_master #(
         )
         trade_slave (
         .clk_100MHz(clk), .reset(),
-        .uart_rx(uart_rx),
-        .uart_tx(uart_tx),
+        .uart_rx(uart_rx), .uart_tx(uart_tx),
         .uart_tx_trigger(uart_tx_trigger),
         .uart_rx_clear(uart_rx_clear),
+        
+        .uart1_rx(uart1_rx), .uart1_tx(uart1_tx),
+        .uart1_tx_trigger(uart1_tx_trigger),
+        .uart1_rx_clear(uart1_rx_clear),
+        
+        .uart2_rx(uart2_rx), .uart2_tx(uart2_tx),
+        .uart2_tx_trigger(uart2_tx_trigger),
+        .uart2_rx_clear(uart2_rx_clear),
         
         // Debugging Ports
         .sw(sw), .led(led), 

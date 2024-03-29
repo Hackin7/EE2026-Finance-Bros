@@ -89,7 +89,49 @@ module top (
             .tx_trigger(uart_tx_trigger),
             .tx_in(uart_tx)
         );
-    
+
+    wire uart1_rx_clear;
+    wire uart1_tx_trigger;
+    wire [UART_FRAME_SIZE*DBITS-1:0] uart1_rx;
+    wire [UART_FRAME_SIZE*DBITS-1:0] uart1_tx;
+    // Complete UART Core
+    uart_module 
+        #(
+            .FIFO_IN_SIZE(UART_FRAME_SIZE),
+            .FIFO_OUT_SIZE(UART_FRAME_SIZE),
+            .FIFO_OUT_SIZE_EXP(32)
+        ) 
+        UART1_UNIT
+        (
+            .clk_100MHz(clk),
+            .rx(rx1), .tx(tx1),
+            // .rx_full(rx_full), .rx_empty(rx_empty), .rx_tick(rx_tick),
+            .rx_out(uart1_rx),
+            .rx_clear(uart1_rx_clear),
+            .tx_trigger(uart1_tx_trigger),
+            .tx_in(uart1_tx)
+        );
+    wire uart2_rx_clear;
+    wire uart2_tx_trigger;
+    wire [UART_FRAME_SIZE*DBITS-1:0] uart2_rx;
+    wire [UART_FRAME_SIZE*DBITS-1:0] uart2_tx;
+    // Complete UART Core
+    uart_module 
+        #(
+            .FIFO_IN_SIZE(UART_FRAME_SIZE),
+            .FIFO_OUT_SIZE(UART_FRAME_SIZE),
+            .FIFO_OUT_SIZE_EXP(32)
+        ) 
+        UART2_UNIT
+        (
+            .clk_100MHz(clk),
+            .rx(rx2), .tx(tx2),
+            // .rx_full(rx_full), .rx_empty(rx_empty), .rx_tick(rx_tick),
+            .rx_out(uart2_rx),
+            .rx_clear(uart2_rx_clear),
+            .tx_trigger(uart2_tx_trigger),
+            .tx_in(uart2_tx)
+        );
     //// Group Task //////////////////////////////////////////////////////////////////////////////////////////////////
     wire master_reset = 0;
     wire [15:0] master_led; 
@@ -107,6 +149,14 @@ module top (
         .uart_rx(uart_rx), .uart_tx(master_uart_tx),
         .uart_tx_trigger(master_uart_tx_trigger),
         .uart_rx_clear(master_uart_rx_clear),
+
+        .uart1_rx(uart1_rx), .uart1_tx(uart1_tx),
+        .uart1_tx_trigger(uart1_tx_trigger),
+        .uart1_rx_clear(uart1_rx_clear),
+        
+        .uart2_rx(uart2_rx), .uart2_tx(uart2_tx),
+        .uart2_tx_trigger(uart2_tx_trigger),
+        .uart2_rx_clear(uart2_rx_clear),
         // OLED
         .oled_pixel_index(oled_pixel_index), .oled_pixel_data(master_oled_pixel_data),
         .mouse_xpos(mouse_xpos), .mouse_ypos(mouse_ypos), .mouse_zpos(mouse_zpos),

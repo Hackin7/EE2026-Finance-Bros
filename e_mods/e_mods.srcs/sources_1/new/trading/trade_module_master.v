@@ -18,6 +18,15 @@ module trade_module_master #(
     output reg uart_tx_trigger=0,
     output reg uart_rx_clear=0,
 
+    input [UART_FRAME_SIZE*DBITS-1:0] uart1_rx,
+    output [UART_FRAME_SIZE*DBITS-1:0] uart1_tx,
+    output reg uart1_tx_trigger=0,
+    output reg uart1_rx_clear=0,
+
+    input [UART_FRAME_SIZE*DBITS-1:0] uart2_rx,
+    output [UART_FRAME_SIZE*DBITS-1:0] uart2_tx,
+    output reg uart2_tx_trigger=0,
+    output reg uart2_rx_clear=0,
     // Debugging //////////////////////////////////////////////////////////
     output [167:0] debug_accounts,
     output [95:0] debug_stocks,
@@ -159,6 +168,37 @@ module trade_module_master #(
         .uart_tx(uart_tx)
     );
 
+    reg [7:0] master1_type=0;
+    reg [7:0] master1_account_id=0;
+    reg [7:0] master1_stock_id=0;
+    reg [7:0] master1_qty=0;
+    reg [7:0] master1_price=0;
+    reg [31:0] master1_balance=0;
+    trade_packet_former 
+        #(
+            .DBITS(DBITS), .UART_FRAME_SIZE(UART_FRAME_SIZE)
+        ) former1 (
+        .type(master1_type), .account_id(master1_account_id), 
+        .stock_id(master1_stock_id), .qty(master1_qty), 
+        .price(master1_price), .balance(master1_balance), 
+        .uart_tx(uart1_tx)
+    );
+
+    reg [7:0] master2_type=0;
+    reg [7:0] master2_account_id=0;
+    reg [7:0] master2_stock_id=0;
+    reg [7:0] master2_qty=0;
+    reg [7:0] master2_price=0;
+    reg [31:0] master2_balance=0;
+    trade_packet_former 
+        #(
+            .DBITS(DBITS), .UART_FRAME_SIZE(UART_FRAME_SIZE)
+        ) former2 (
+        .type(master2_type), .account_id(master2_account_id), 
+        .stock_id(master2_stock_id), .qty(master2_qty), 
+        .price(master2_price), .balance(master2_balance), 
+        .uart_tx(uart2_tx)
+    );
     /* --- UART Receiver -------------------------------------------------------------------------- */
     wire [7:0] slave_type;
     wire [7:0] slave_account_id;
@@ -178,6 +218,40 @@ module trade_module_master #(
         .price(slave_price)
     );
     
+    wire [7:0] slave1_type;
+    wire [7:0] slave1_account_id;
+    wire [7:0] slave1_stock_id;
+    wire [7:0] slave1_qty;
+    wire [7:0] slave1_price;
+    trade_packet_parser // redundancy with module_slave but whatever
+        #(
+            .DBITS(DBITS), 
+            .UART_FRAME_SIZE(UART_FRAME_SIZE)
+        ) parser1 (
+        .uart_rx(uart1_rx), 
+        .type(slave1_type), 
+        .account_id(slave1_account_id), 
+        .stock_id(slave1_stock_id), 
+        .qty(slave1_qty), 
+        .price(slave1_price)
+    );
+    wire [7:0] slave2_type;
+    wire [7:0] slave2_account_id;
+    wire [7:0] slave2_stock_id;
+    wire [7:0] slave2_qty;
+    wire [7:0] slave2_price;
+    trade_packet_parser // redundancy with module_slave but whatever
+        #(
+            .DBITS(DBITS), 
+            .UART_FRAME_SIZE(UART_FRAME_SIZE)
+        ) parser2 (
+        .uart_rx(uart2_rx), 
+        .type(slave2_type), 
+        .account_id(slave2_account_id), 
+        .stock_id(slave2_stock_id), 
+        .qty(slave2_qty), 
+        .price(slave2_price)
+    );
     
     task fsm_uart_receive();
     begin
@@ -203,12 +277,66 @@ module trade_module_master #(
     endtask
 
     
+    task fsm_uart1_receive();
+    begin
+        uart1_rx_clear <= 0;
+        if (slave1_type == parser.TYPE_INVALID) begin
+            // Do nothing
+        end else if (slave1_type == parser.TYPE_BUY) begin
+            trade1_approve_buy();
+            uart1_rx_clear <= 1;
+        end else if (slave1_type == parser.TYPE_SELL) begin
+            trade1_approve_sell();
+            uart1_rx_clear <= 1;
+        end else if (slave1_type == parser.TYPE_GET_ACCOUNT_BALANCE) begin
+            trade1_return_account_balance();
+            uart1_rx_clear <= 1;
+        end else if (slave1_type == parser.TYPE_GET_ACCOUNT_STOCKS) begin
+            trade1_return_account_stocks();
+            uart1_rx_clear <= 1;
+        end else begin
+            // Do nothing
+        end
+    end
+    endtask
+
+    task fsm_uart2_receive();
+    begin
+        uart2_rx_clear <= 0;
+        if (slave2_type == parser.TYPE_INVALID) begin
+            // Do nothing
+        end else if (slave2_type == parser.TYPE_BUY) begin
+            trade2_approve_buy();
+            uart2_rx_clear <= 1;
+        end else if (slave2_type == parser.TYPE_SELL) begin
+            trade2_approve_sell();
+            uart2_rx_clear <= 1;
+        end else if (slave2_type == parser.TYPE_GET_ACCOUNT_BALANCE) begin
+            trade2_return_account_balance();
+            uart2_rx_clear <= 1;
+        end else if (slave2_type == parser.TYPE_GET_ACCOUNT_STOCKS) begin
+            trade2_return_account_stocks();
+            uart2_rx_clear <= 1;
+        end else begin
+            // Do nothing
+        end
+    end
+    endtask
+
     always @(posedge clk_100MHz) begin
         // UART Send Reset
         if (uart_tx_trigger) begin
             uart_tx_trigger <= 0;
         end
+        if (uart1_tx_trigger) begin
+            uart1_tx_trigger <= 0;
+        end
+        if (uart2_tx_trigger) begin
+            uart2_tx_trigger <= 0;
+        end
         fsm_uart_receive();
+        fsm_uart1_receive();
+        fsm_uart2_receive();
     end
 
     /* --- Approval Logic --------------------------------------------------------------- */
@@ -312,6 +440,210 @@ module trade_module_master #(
     end
     endtask
 
+    
+    /* --- Approval1 Logic --------------------------------------------------------------- */
+    
+    wire [BITWIDTH_ACCT_BALANCE:0]   curr1_account_balance   = account_get_balance(slave1_account_id);
+    wire [BITWIDTH_ACCT_STOCKS:0]    curr1_account_stock_qty = account_get_stock(slave1_account_id, slave1_stock_id);
+    wire [BITWIDTH_STOCKS:0] curr1_stock_price       = stock_get_price(slave1_stock_id);    
+    wire [31:0] amount1_paid = slave1_price * slave1_qty;      // amount_paid  = curr_stock.price * slave1_qty
+    wire price1_match_buy = curr1_stock_price <= slave1_price; // price_match  = curr_stock.price <= slave1_price
+    wire can1_buy = curr1_account_balance >= amount1_paid;     // can1_buy = (curr_account.balance >= amount_paid)
+
+    wire price1_match_sell = curr1_stock_price >= slave1_price;      
+    wire can1_sell = account_get_stock(slave1_account_id, slave1_stock_id) >= slave1_qty;    // TODO: Get Qty of Stock existing
+
+    task trade1_approve_buy();
+    begin
+        if (can1_buy && price1_match_buy) begin
+            // Math -----------------------------------------
+            accounts <= (
+                account_update_balance(slave1_account_id, curr1_account_balance - (slave1_price*slave1_qty),
+                account_update_stock( slave1_account_id, slave1_stock_id, curr1_account_stock_qty + slave1_qty,
+                accounts))
+            );
+            admin_fees <= admin_fees + (slave1_price - curr1_stock_price) * slave1_qty;
+            // Comms ----------------------------------------
+            // Send OK Packet
+            master1_type <= former.TYPE_OK;
+            uart1_tx_trigger <= 1;
+        end else begin
+            // Comms ----------------------------------------
+            // Send Fail Packet
+            master1_type <= former.TYPE_FAIL;
+            uart1_tx_trigger <= 1;
+        end
+        
+        // Market Movement -----------------------------------
+        if (can1_buy) begin
+            if (slave1_price < curr1_stock_price) begin
+                market_movement_one(slave1_stock_id, stock_get_threshold(slave1_stock_id)-1);
+            end else if (slave1_price >= curr1_stock_price) begin
+                market_movement_one(slave1_stock_id, stock_get_threshold(slave1_stock_id)+1);
+            end
+        end
+    end
+    endtask
+    
+    task trade1_approve_sell();
+    begin
+        if (can1_sell && price1_match_sell) begin
+            // Math -----------------------------------------
+            accounts <= (
+                account_update_balance(slave1_account_id, curr1_account_balance + (slave1_price*slave1_qty),
+                account_update_stock( slave1_account_id, slave1_stock_id, curr1_account_stock_qty - slave1_qty,
+                accounts))
+            );
+            admin_fees <= admin_fees + (curr_stock_price - slave1_price) * slave1_qty;
+            // Comms ----------------------------------------
+            // Send OK Packet
+            master1_type <= former.TYPE_OK;
+            uart1_tx_trigger <= 1;
+        end else begin
+            // Comms ----------------------------------------
+            // Send Fail Packet
+            master1_type <= former.TYPE_FAIL;
+            uart1_tx_trigger <= 1;
+        end
+        
+        // Market Movement -----------------------------------
+        if (can1_sell) begin
+            if (slave1_price <= curr1_stock_price) begin
+                market_movement_one(slave1_stock_id, stock_get_threshold(slave1_stock_id)-1);
+            end else if (slave1_price > curr1_stock_price) begin
+                market_movement_one(slave1_stock_id, stock_get_threshold(slave1_stock_id)+1);
+            end
+        end
+    end
+    endtask
+
+    task trade1_return_account_balance();
+    begin
+         // Comms ----------------------------------------
+        // Send OK Packet
+        master1_type <= former.TYPE_RETURN_ACCOUNT_BALANCE;
+        master1_balance <= account_get_balance(slave1_account_id);
+        uart1_tx_trigger <= 1;
+    end
+    endtask
+
+    task trade1_return_account_stocks();
+    begin
+         // Comms ----------------------------------------
+        // Send OK Packet
+        master1_type <= former.TYPE_RETURN_ACCOUNT_STOCKS;
+        master1_balance <= {
+            account_get_stock(slave1_account_id, 0),
+            account_get_stock(slave1_account_id, 1),
+            account_get_stock(slave1_account_id, 2),
+            8'b0
+        };
+        uart1_tx_trigger <= 1;
+    end
+    endtask
+
+    
+    /* --- Approval2 Logic --------------------------------------------------------------- */
+    
+    wire [BITWIDTH_ACCT_BALANCE:0]   curr2_account_balance   = account_get_balance(slave2_account_id);
+    wire [BITWIDTH_ACCT_STOCKS:0]    curr2_account_stock_qty = account_get_stock(slave2_account_id, slave2_stock_id);
+    wire [BITWIDTH_STOCKS:0] curr2_stock_price       = stock_get_price(slave2_stock_id);    
+    wire [31:0] amount2_paid = slave2_price * slave2_qty;      // amount2_paid  = curr_stock.price * slave2_qty
+    wire price2_match_buy = curr2_stock_price <= slave2_price; // price_match  = curr_stock.price <= slave2_price
+    wire can2_buy = curr2_account_balance >= amount2_paid;     // can2_buy = (curr_account.balance >= amount2_paid)
+
+    wire price2_match_sell = curr2_stock_price >= slave2_price;      
+    wire can2_sell = account_get_stock(slave2_account_id, slave2_stock_id) >= slave2_qty;    // TODO: Get Qty of Stock existing
+
+    task trade2_approve_buy();
+    begin
+        if (can2_buy && price2_match_buy) begin
+            // Math -----------------------------------------
+            accounts <= (
+                account_update_balance(slave2_account_id, curr2_account_balance - (slave2_price*slave2_qty),
+                account_update_stock( slave2_account_id, slave2_stock_id, curr2_account_stock_qty + slave2_qty,
+                accounts))
+            );
+            admin_fees <= admin_fees + (slave2_price - curr2_stock_price) * slave2_qty;
+            // Comms ----------------------------------------
+            // Send OK Packet
+            master2_type <= former.TYPE_OK;
+            uart2_tx_trigger <= 1;
+        end else begin
+            // Comms ----------------------------------------
+            // Send Fail Packet
+            master2_type <= former.TYPE_FAIL;
+            uart2_tx_trigger <= 1;
+        end
+        
+        // Market Movement -----------------------------------
+        if (can2_buy) begin
+            if (slave2_price < curr2_stock_price) begin
+                market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)-1);
+            end else if (slave2_price >= curr2_stock_price) begin
+                market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)+1);
+            end
+        end
+    end
+    endtask
+    
+    task trade2_approve_sell();
+    begin
+        if (can2_sell && price2_match_sell) begin
+            // Math -----------------------------------------
+            accounts <= (
+                account_update_balance(slave2_account_id, curr2_account_balance + (slave2_price*slave2_qty),
+                account_update_stock( slave2_account_id, slave2_stock_id, curr2_account_stock_qty - slave2_qty,
+                accounts))
+            );
+            admin_fees <= admin_fees + (curr2_stock_price - slave2_price) * slave2_qty;
+            // Comms ----------------------------------------
+            // Send OK Packet
+            master2_type <= former.TYPE_OK;
+            uart2_tx_trigger <= 1;
+        end else begin
+            // Comms ----------------------------------------
+            // Send Fail Packet
+            master2_type <= former.TYPE_FAIL;
+            uart2_tx_trigger <= 1;
+        end
+        
+        // Market Movement -----------------------------------
+        if (can2_sell) begin
+            if (slave2_price <= curr2_stock_price) begin
+                market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)-1);
+            end else if (slave2_price > curr2_stock_price) begin
+                market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)+1);
+            end
+        end
+    end
+    endtask
+
+    task trade2_return_account_balance();
+    begin
+         // Comms ----------------------------------------
+        // Send OK Packet
+        master2_type <= former.TYPE_RETURN_ACCOUNT_BALANCE;
+        master2_balance <= account_get_balance(slave2_account_id);
+        uart2_tx_trigger <= 1;
+    end
+    endtask
+
+    task trade2_return_account_stocks();
+    begin
+         // Comms ----------------------------------------
+        // Send OK Packet
+        master2_type <= former.TYPE_RETURN_ACCOUNT_STOCKS;
+        master2_balance <= {
+            account_get_stock(slave2_account_id, 0),
+            account_get_stock(slave2_account_id, 1),
+            account_get_stock(slave2_account_id, 2),
+            8'b0
+        };
+        uart2_tx_trigger <= 1;
+    end
+    endtask
+
     /* --- Market Movement -------------------------------------------------------------- */
     
     task market_movement_one(
@@ -331,7 +663,7 @@ module trade_module_master #(
                 stock_update_threshold(stock_id, 0, 
             stocks)));
         end else begin
-            stocks <= stock_update_threshold(slave_stock_id, threshold, stocks);
+            stocks <= stock_update_threshold(stock_id, threshold, stocks);
         end
     end
     endtask
@@ -358,14 +690,14 @@ module trade_module_master #(
         sw[15:10] == 2 ? {slave_stock_id} : (
         sw[15:10] == 3 ? {slave_qty} : (
         sw[15:10] == 4 ? {slave_price} : (
-        sw[15:10] == 5 ? uart_rx[7:0] : (
-        sw[15:10] == 6 ? uart_rx[15:8] : (
-        sw[15:10] == 7 ? uart_rx[23:16] : (
-        sw[15:10] == 8 ? uart_rx[31:24] : (
-        sw[15:10] == 9 ? uart_rx[39:32] : (
-        sw[15:10] == 10 ? uart_rx[47:40] : (
-        sw[15:10] == 11 ? uart_rx[55:48] : (
-        sw[15:10] == 12 ? uart_rx[63:56] : (
+        sw[15:10] == 5 ? uart1_rx[7:0] : (
+        sw[15:10] == 6 ? uart1_rx[15:8] : (
+        sw[15:10] == 7 ? uart1_rx[23:16] : (
+        sw[15:10] == 8 ? uart1_rx[31:24] : (
+        sw[15:10] == 9 ? uart1_rx[39:32] : (
+        sw[15:10] == 10 ? uart1_rx[47:40] : (
+        sw[15:10] == 11 ? uart1_rx[55:48] : (
+        sw[15:10] == 12 ? uart1_rx[63:56] : (
         sw[15:10] == 13 ? 'b0 : (
             ~'b0
         ))))))))))))))

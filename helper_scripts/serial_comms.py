@@ -1,6 +1,6 @@
 import serial
 #port = "COM17"
-port = "COM17"
+port = "COM19"
 ser = serial.Serial(port)  # open serial port
 ser.baudrate = 9600
 print(ser.name)         # check which port was really used
@@ -101,8 +101,8 @@ def return_account():
     send_with_response(lambda: return_account_balance(99))
     return_account_stock(100, 10, 1)
 
-#test_master()
+test_master()
 	
-approve_buy()	
+#approve_buy()	
 #ok()
 #return_account()
