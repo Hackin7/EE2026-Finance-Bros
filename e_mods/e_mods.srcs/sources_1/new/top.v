@@ -19,7 +19,9 @@ module top (
     // 7 Segment Display
     output [6:0] seg, output dp, output [3:0] an,
     // UART
-    input rx, output tx,
+    input rxUSB, output txUSB,
+    input rx0, rx1, rx2,
+    output tx0, tx1, tx2,
     // OLED PMOD
     inout [7:0] JB,
     inout mouse_ps2_clk, mouse_ps2_data
@@ -60,6 +62,10 @@ module top (
     );
     //// UART //////////////////////////////////////////////
     //// UART //////////////////////////////////////////////
+    wire rx; assign rx = rxUSB | rx0; // Receive data to board - send from PC/ master
+    wire tx; assign txUSB = tx; assign tx0 = tx;
+    assign tx1 = 1;// testing
+
     parameter DBITS = 8;
     parameter UART_FRAME_SIZE = 8;
     wire uart_rx_clear;
@@ -76,7 +82,7 @@ module top (
         UART_UNIT
         (
             .clk_100MHz(clk),
-            .rx(rx), .tx(tx),
+            .rx(rx0), .tx(tx),
             // .rx_full(rx_full), .rx_empty(rx_empty), .rx_tick(rx_tick),
             .rx_out(uart_rx),
             .rx_clear(uart_rx_clear),
@@ -146,7 +152,7 @@ module top (
     wire enable_mode_master = sw[0];
     wire enable_mode_slave = sw[1];
     
-    assign led = enable_mode_master ? master_led : (enable_mode_slave ? slave_led: 16'hFFFF);
+    assign led = enable_mode_master ? master_led : (enable_mode_slave ? slave_led: {11'd0, rxUSB, rx0, rx1, rx2, rx});//16'hFFFF);
     assign seg = enable_mode_master ? master_seg : (enable_mode_slave ? slave_seg: 7'b1111111);
     assign dp = enable_mode_master ? master_dp : (enable_mode_slave ? slave_dp : 1);
     assign an = enable_mode_master ? master_an : (enable_mode_slave ? slave_an :  4'b1111);
