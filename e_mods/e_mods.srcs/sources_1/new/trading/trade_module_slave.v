@@ -136,8 +136,8 @@ module trade_module_slave #(
         .balance(balance)
     );
     assign stock1 = packet_account_id;
-    assign stock2 = 999;
-    assign stock3 = packet_price;
+    assign stock2 = packet_stock_id;
+    assign stock3 = packet_qty;
     
     task fsm_uart_receive();
     begin

@@ -86,6 +86,7 @@ from serial_comms import *
 ### Testing Trading System
 def approve_buy():
     print(packet_read())
+    print(packet_read())
     ok()
 
 
@@ -93,6 +94,7 @@ def approve_buy():
 def return_account():
     print(packet_read())
     send_with_response(lambda: return_account_balance(99))
-    return_account_stock(1, 10, 10)
-	
-return_account();
+    return_account_stock(100, 10, 1)
+
+#approve_buy()	
+return_account()

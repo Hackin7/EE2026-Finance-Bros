@@ -64,17 +64,32 @@ module slave_table_view(
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(balance_pixel_data));
     
     wire [15:0] stock_pixel_data;
-    text_dynamic #(17) text_module3(
+    text_dynamic #(12) text_module3(
         .x(xpos), .y(ypos), 
         .color(constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(20), .string({"STOCK1 ", ":", num_string3, " ", num_string4}), .offset(0), //9*6), 
+        .text_y_pos(20), .string({"STOCK1 ", ":", num_string3}), .offset(0), //9*6), 
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(stock_pixel_data));
-        
+    
+    wire [15:0] stock2_pixel_data;
+    text_dynamic #(12) text_module4(
+        .x(xpos), .y(ypos), 
+        .color(constant.WHITE), .background(constant.BLACK), 
+        .text_y_pos(30), .string({"STOCK2 ", ":", num_string4}), .offset(0), //9*6), 
+        .repeat_flag(0), .x_pos_offset(0), .pixel_data(stock2_pixel_data));
+    
+    
+    wire [15:0] stock3_pixel_data;
+    text_dynamic #(12) text_module5(
+        .x(xpos), .y(ypos), 
+        .color(constant.WHITE), .background(constant.BLACK), 
+        .text_y_pos(40), .string({"STOCK3 ", ":", num_string5}), .offset(0), //9*6), 
+        .repeat_flag(0), .x_pos_offset(0), .pixel_data(stock3_pixel_data));
+
     always @ (*) begin
     xpos = pixel_index % 96;
     ypos = pixel_index / 96;
     
-    pixel_data <= user_pixel_data | balance_pixel_data | stock_pixel_data;
+    pixel_data <= user_pixel_data | balance_pixel_data | stock_pixel_data | stock2_pixel_data | stock3_pixel_data;
 
     end
     

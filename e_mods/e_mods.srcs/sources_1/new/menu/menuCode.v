@@ -81,9 +81,9 @@ module menuCode#(
     
     wire [15:0] table_view_ready_pixel_data;
     reg [31:0] table_balance = 0;
-    reg [7:0] table_stock1 = 10;
-    reg [7:0] table_stock2 = 999;
-    reg [7:0] table_stock3 = 999;
+    reg [7:0] table_stock1 = 9999;
+    reg [7:0] table_stock2 = 9999;
+    reg [7:0] table_stock3 = 9999;
     wire table_view_reset;
     slave_table_view table_view(
         .clk(clk), .reset(table_view_reset), 
@@ -251,7 +251,7 @@ module menuCode#(
                     table_balance <= trade_slave_get_balance;
                     trade_slave_type <= trade_packet.TYPE_GET_ACCOUNT_STOCKS; // label that it is not sending anymore
                     trade_slave_trigger <= 1;
-                    self_status_state <= 3;
+                    self_status_state <= 2;
                 end
             end else if (self_status_state == 2) begin
                 if (trade_slave_send_status == trade_slave.STATUS_RETRIEVED) begin
