@@ -20,7 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module slavePageOne(
+module slaveTradePage(
     // Control
     input clk, input reset, 
     // LEDs, Switches, Buttons
@@ -230,12 +230,10 @@ module slavePageOne(
                 end
             end
             2: begin
-<<<<<<< Updated upstream
                 pixel_data <= text_module_pixel_data | text_num_module_pixel_data;
             end
             3: begin
                 pixel_data <= text_module_pixel_data;
-=======
                 if ((xpos > 5 && xpos < 11) && (ypos > 29 && ypos < 35)) begin
                     pixel_data <= draw_letter(xpos, ypos, 6, 30, constant.charS) ? constant.BLACK : constant.WHITE;
                 end else if ((xpos > 11 && xpos < 17) && (ypos > 29 && ypos < 35)) begin
@@ -259,7 +257,6 @@ module slavePageOne(
                 end else begin
                     pixel_data <= constant.WHITE;
                 end
->>>>>>> Stashed changes
             end
         endcase
         /* --------------------------------------------------------------------------*/
