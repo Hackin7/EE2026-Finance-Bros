@@ -49,12 +49,31 @@ module menuCode#(
     wire pageOne_done;
     slaveTradePage pageOne(
         .clk(clk), .reset(pageOne_reset), .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
-        .sw(sw), .pixel_index(pixel_index), .oled_pixel_data(pageOne_pixel_data),
+        .sw(sw), .pixel_index(oled_pixel_index), .oled_pixel_data(pageOne_pixel_data),
         .seg(pageOne_seg), .dp(pageOne_dp), .an(pageOne_an),
-        .stock_id(stock_id), .price(price), .qty(qty), .done(pageOne_done)
+        .stock_id(stock_id), .price(price), .quantity(qty), .done(pageOne_done)
     );
     
+    //menu page
+    wire [15:0] menu_page_pixel_data;
+    wire menu_page_reset;
+    wire [6:0] menu_seg;
+    wire menu_dp;
+    wire [3:0] menu_an;
+    reg [3:0] menu_button_state;
+    slaveMenuPage menuPage(
+        .clk(clk), .reset(menu_page_reset), .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
+        .sw(sw), .pixel_index(oled_pixel_index), .oled_pixel_data(menu_page_pixel_data),
+        .seg(menu_seg), .dp(menu_dp), .an(menu_an), .menu_button_state(menu_button_state)
+    );
     
+    //table page
+    wire [15:0] table_view_pixel_data;
+    wire table_view_reset;
+    slave_table_view table_view(
+        .clk(clk), .reset(table_view_reset), 
+        .pixel_index(oled_pixel_index), .oled_pixel_data(table_view_pixel_data)
+    );
 
 
     /* UART Control --------------------------------------------------------------------*/
@@ -135,17 +154,33 @@ module menuCode#(
     parameter STATE_ADD_TRADE = 2;
     parameter STATE_FAIL_ADD_TRADE = 3;
     parameter STATE_TABLE_VIEW = 4;
+    parameter STATE_CURRENT_TRADE = 5;
 
     task state_menu_handle();
     begin
         if (!debounce) begin
             if (prev_btnC == 1 && btnC == 0) begin
-                state <= STATE_ADD_TRADE;
-                pageOne_reset <= 0;
+                debounce <= 1;
+                if (menu_button_state == 0) begin
+                    //TODO: VIEW INFO
+                    state <= STATE_TABLE_VIEW;
+                    menu_button_state <= 0;
+                end else if (menu_button_state == 1) begin
+                    //TODO: CURRENT TRADE
+                    state <= STATE_CURRENT_TRADE;
+                    menu_button_state <= 0;
+                end else if (menu_button_state == 2) begin
+                    state <= STATE_ADD_TRADE;
+                    menu_button_state <= 0;
+                    pageOne_reset <= 0;
+                end
+            end
+            if (prev_btnU == 1 && btnU == 0) begin
+                menu_button_state <= menu_button_state - 1;
                 debounce <= 1;
             end
-            if (prev_btnL == 1 && btnL == 0) begin
-                state <= STATE_TABLE_VIEW;
+            if (prev_btnD == 1 && btnD == 0) begin
+                menu_button_state <= menu_button_state + 1;
                 debounce <= 1;
             end
         end
@@ -178,6 +213,17 @@ module menuCode#(
         end
     end
     endtask
+    
+    task state_current_trade_handle();
+        begin
+            if (!debounce) begin
+                if (prev_btnC == 1 && btnC == 0) begin
+                    state <= STATE_MENU;
+                    debounce <= 1;
+                end
+            end
+        end
+        endtask
     // Debugger
     /*assign led[5] = pageOne_done;
     assign led[4] = pageOne_reset;
@@ -196,6 +242,8 @@ module menuCode#(
         end else if (state == STATE_FAIL_ADD_TRADE) begin
         end else if (state == STATE_TABLE_VIEW) begin
             state_table_handle();
+        end else if (state == STATE_CURRENT_TRADE) begin
+            state_current_trade_handle();
         end
         button_control();
         trade_module_slave_processing();
@@ -217,16 +265,21 @@ module menuCode#(
         end else if (state == STATE_INPUT_SLAVE_ID) begin
             pixel_data <= constant.WHITE;
         end else if (state == STATE_MENU) begin
-            pixel_data <= constant.YELLOW;
+            pixel_data <= menu_page_pixel_data;
+            control_seg <= menu_seg;
+            control_dp <= menu_dp;
+            control_an <= menu_an;
         end else if (state == STATE_ADD_TRADE) begin
-            pixel_data = pageOne_pixel_data;
-            control_seg = pageOne_seg;
-            control_dp = pageOne_dp;
-            control_an = pageOne_an;
+            pixel_data <= pageOne_pixel_data;
+            control_seg <= pageOne_seg;
+            control_dp <= pageOne_dp;
+            control_an <= pageOne_an;
         end else if (state == STATE_FAIL_ADD_TRADE) begin
             pixel_data <= constant.RED;
         end else if (state == STATE_TABLE_VIEW) begin
-            pixel_data <= constant.BLUE;
+            pixel_data <= table_view_pixel_data;
+        end else if (state == STATE_CURRENT_TRADE) begin
+            pixel_data <= constant.ORANGE;
         end
     end
 
