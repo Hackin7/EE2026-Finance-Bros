@@ -146,6 +146,16 @@ module module_master #(
         .string({num_string1, " ", num_string2, " ", num_string3}), 
         .offset(0), 
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(num1_pixel_data));
+        
+    reg [3:0] state = 4'd1;
+    parameter MENU_STATE = 1;
+    parameter USER_TABLE_STATE = 2;
+    parameter STOCK_TABLE_STATE = 3;
+    parameter GRAPH_STATE = 4;
+    
+    always @ (posedge clk) begin
+        
+    end
 
     always @ (*) begin
         xpos = oled_pixel_index % 96;

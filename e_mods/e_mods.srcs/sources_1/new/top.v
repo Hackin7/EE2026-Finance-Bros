@@ -85,48 +85,44 @@ module top (
         );
     
     //// Group Task //////////////////////////////////////////////////////////////////////////////////////////////////
-    wire master_reset = 0;
+    wire master_reset;
     wire [15:0] master_led; 
-    wire [6:0] master_seg; wire master_dp;wire [3:0] master_an;
-    wire [UART_FRAME_SIZE*DBITS-1:0] master_uart_tx;
+    wire [6:0] master_seg;
+    wire master_dp;
+    wire [3:0] master_an;
     wire master_uart_tx_trigger;
     wire master_uart_rx_clear;
     wire [15:0] master_oled_pixel_data;
 
-    module_master master_module(
-        .reset(master_reset), .clk(clk),
-        .btnC(btnC), .btnU(btnU), .btnL(btnL), .btnR(btnR), .btnD(btnD), .sw(sw), .led(master_led), 
-        .seg(master_seg), .dp(master_dp), .an(master_an),
-        // UART
-        .uart_rx(uart_rx), .uart_tx(master_uart_tx),
-        .uart_tx_trigger(master_uart_tx_trigger),
-        .uart_rx_clear(master_uart_rx_clear),
-        // OLED
-        .oled_pixel_index(oled_pixel_index), .oled_pixel_data(master_oled_pixel_data),
+    /*adaptor_task_group task_group(
+        .reset(group_reset), .clk(clk),
+        .btnC(btnC), .btnU(btnU), .btnL(btnL), .btnR(btnR), .btnD(btnD), .sw(sw), .led(group_led), 
+        .seg(group_seg), .dp(group_dp), .an(group_an),
+        .oled_pixel_index(oled_pixel_index), .oled_pixel_data(group_oled_pixel_data),
         .mouse_xpos(mouse_xpos), .mouse_ypos(mouse_ypos), .mouse_zpos(mouse_zpos),
         .mouse_left_click(mouse_left_click), .mouse_middle_click(mouse_middle_click),
         .mouse_right_click(mouse_right_click), .mouse_new_event(mouse_new_event)
-    );
+    );*/
 
     //// Slave //////////////////////////////////////////////////////////////////////////////////////////////////
-    wire slave_reset = 0;
+    wire slave_reset=0;
     wire [15:0] slave_led; 
     wire [6:0] slave_seg; 
     wire slave_dp;
     wire [3:0] slave_an;
-    wire [UART_FRAME_SIZE*DBITS-1:0] slave_uart_tx;
     wire slave_uart_tx_trigger;
     wire slave_uart_rx_clear;
+    wire slave_uart_tx;
     wire [15:0] slave_oled_pixel_data;
 
-    menuCode menu(
+    menuCode slave_menu(
         .clk(clk), .reset(slave_reset) , .sw(sw),.led(slave_led),
         .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
         .oled_pixel_index(oled_pixel_index), .oled_pixel_data(slave_oled_pixel_data),
         .seg(slave_seg), .dp(slave_dp), .an(slave_an), 
         
         .uart_rx(uart_rx),
-        .uart_tx(slave_uart_tx),
+        .uart_tx(uart_tx),
         .uart_tx_trigger(slave_uart_tx_trigger),
         .uart_rx_clear(slave_uart_rx_clear)
     );
@@ -150,7 +146,6 @@ module top (
     assign seg = enable_mode_master ? master_seg : (enable_mode_slave ? slave_seg: 7'b1111111);
     assign dp = enable_mode_master ? master_dp : (enable_mode_slave ? slave_dp : 1);
     assign an = enable_mode_master ? master_an : (enable_mode_slave ? slave_an :  4'b1111);
-    assign uart_tx = enable_mode_master ? master_uart_tx : (enable_mode_slave ? slave_uart_tx :  1'b0);
     assign uart_tx_trigger = enable_mode_master ? master_uart_tx_trigger : (enable_mode_slave ? slave_uart_tx_trigger :  1'b0);
     assign uart_rx_clear = enable_mode_master ? master_uart_rx_clear : (enable_mode_slave ? slave_uart_rx_clear :  1'b0);
     assign oled_pixel_data = enable_mode_master ? master_oled_pixel_data : (enable_mode_slave ? slave_oled_pixel_data : 16'hFFFF);

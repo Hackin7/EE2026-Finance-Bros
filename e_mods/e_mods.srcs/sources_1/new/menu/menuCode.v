@@ -46,17 +46,18 @@ module menuCode#(
     wire pageOne_dp;
     wire [3:0] pageOne_an;
     wire [31:0] price, qty, stock_id;
+    wire action;
     wire pageOne_done;
     slaveTradePage pageOne(
         .clk(clk), .reset(pageOne_reset), .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
         .sw(sw), .pixel_index(oled_pixel_index), .oled_pixel_data(pageOne_pixel_data),
         .seg(pageOne_seg), .dp(pageOne_dp), .an(pageOne_an),
-        .stock_id(stock_id), .price(price), .quantity(qty), .done(pageOne_done)
+        .stock_id(stock_id), .price(price), .quantity(qty), .action(action), .done(pageOne_done)
     );
     
     //menu page
     wire [15:0] menu_page_pixel_data;
-    wire menu_page_reset;
+    reg menu_page_reset;
     wire [6:0] menu_seg;
     wire menu_dp;
     wire [3:0] menu_an;
@@ -66,15 +67,33 @@ module menuCode#(
         .sw(sw), .pixel_index(oled_pixel_index), .oled_pixel_data(menu_page_pixel_data),
         .seg(menu_seg), .dp(menu_dp), .an(menu_an), .menu_button_state(menu_button_state)
     );
+
+    //input id page
+    reg set_id_reset;
+    wire [15:0] input_id_pixel_data;
+    wire [6:0] input_id_seg;
+    wire input_id_dp;
+    wire [3:0] input_id_an;
+    wire [31:0] account_id;
+    wire input_id_done;
+
+    set_id slave_input_id(
+        .clk(clk), .reset(set_id_reset),
+        .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
+        .sw(sw), .pixel_index(oled_pixel_index), .oled_pixel_data(input_id_pixel_data),
+        .seg(input_id_seg), .dp(input_id_dp), .an(input_id_an), .account_id(account_id),
+        .done(input_id_done)
+    );
     
     //table page
     wire [15:0] table_view_pixel_data;
     wire table_view_reset;
+    wire [31:0] trade_slave_balance; 
     slave_table_view table_view(
         .clk(clk), .reset(table_view_reset), 
-        .pixel_index(oled_pixel_index), .oled_pixel_data(table_view_pixel_data)
+        .pixel_index(oled_pixel_index), .oled_pixel_data(table_view_pixel_data),
+        .balance(trade_slave_balance), .account_id(account_id)
     );
-
 
     /* UART Control --------------------------------------------------------------------*/
     trade_packet_former trade_packet();
@@ -106,6 +125,14 @@ module menuCode#(
         .send_status(trade_slave_send_status), 
         .led(led), .sw(sw)
     );
+    
+    //current trade page
+        wire [15:0] last_packet_pixel_data;
+        view_packet last_packet(
+            .price(trade_slave_price), .quantity(trade_slave_qty), 
+            .stock_id(trade_slave_stock_id), .action(trade_slave_type),
+            .pixel_index(oled_pixel_index), .packet_pixel_data(last_packet_pixel_data)
+        );
 
     // Logic
     parameter TRADE_SUCCESS_SHOW = 200_000_000; // 2 seconds
@@ -148,7 +175,7 @@ module menuCode#(
     endtask
     
     /* State Machine Code ------------------------------------------------------------------*/
-    reg [3:0] state = 4'd1;
+    reg [3:0] state = 4'd0;
     parameter STATE_INPUT_SLAVE_ID = 0;
     parameter STATE_MENU = 1;
     parameter STATE_ADD_TRADE = 2;
@@ -156,31 +183,43 @@ module menuCode#(
     parameter STATE_TABLE_VIEW = 4;
     parameter STATE_CURRENT_TRADE = 5;
 
+    task state_set_id_handle(); begin
+        if (input_id_done) begin
+            trade_slave_account_id <= account_id;
+            debounce <= 1;
+            set_id_reset <= 1;
+            state <= STATE_MENU;
+        end
+    end
+    endtask
+
     task state_menu_handle();
     begin
         if (!debounce) begin
             if (prev_btnC == 1 && btnC == 0) begin
                 debounce <= 1;
                 if (menu_button_state == 0) begin
-                    //TODO: VIEW INFO
                     state <= STATE_TABLE_VIEW;
                     menu_button_state <= 0;
                 end else if (menu_button_state == 1) begin
-                    //TODO: CURRENT TRADE
                     state <= STATE_CURRENT_TRADE;
                     menu_button_state <= 0;
                 end else if (menu_button_state == 2) begin
                     state <= STATE_ADD_TRADE;
                     menu_button_state <= 0;
                     pageOne_reset <= 0;
+                end else if (menu_button_state == 3) begin
+                    state <= STATE_INPUT_SLAVE_ID;
+                    set_id_reset <= 0;
+                    menu_button_state <= 0;
                 end
             end
             if (prev_btnU == 1 && btnU == 0) begin
-                menu_button_state <= menu_button_state - 1;
+                menu_button_state <= menu_button_state == 0 ? 3 : menu_button_state - 1;
                 debounce <= 1;
             end
             if (prev_btnD == 1 && btnD == 0) begin
-                menu_button_state <= menu_button_state + 1;
+                menu_button_state <= menu_button_state == 3 ? 0 : menu_button_state + 1;
                 debounce <= 1;
             end
         end
@@ -192,12 +231,12 @@ module menuCode#(
         if (pageOne_done) begin
             state <= STATE_MENU;
             pageOne_reset <= 1;
-            //trade_slave_account_id <= account_id;
+            trade_slave_account_id <= account_id;
+            trade_slave_type <= action;
             trade_slave_stock_id <= stock_id;
             trade_slave_qty <= qty;
             trade_slave_price <= price;
             trade_slave_trigger <= 1;
-
             debounce <= 1;
         end
     end
@@ -215,15 +254,15 @@ module menuCode#(
     endtask
     
     task state_current_trade_handle();
-        begin
-            if (!debounce) begin
-                if (prev_btnC == 1 && btnC == 0) begin
-                    state <= STATE_MENU;
-                    debounce <= 1;
-                end
+    begin
+        if (!debounce) begin
+            if (prev_btnC == 1 && btnC == 0) begin
+                state <= STATE_MENU;
+                debounce <= 1;
             end
         end
-        endtask
+    end
+    endtask
     // Debugger
     /*assign led[5] = pageOne_done;
     assign led[4] = pageOne_reset;
@@ -235,6 +274,7 @@ module menuCode#(
         if (reset) begin
             state <= 4'd0;
         end else if (state == STATE_INPUT_SLAVE_ID) begin
+            state_set_id_handle();
         end else if (state == STATE_MENU) begin
             state_menu_handle();
         end else if (state == STATE_ADD_TRADE) begin
@@ -263,7 +303,10 @@ module menuCode#(
         if (trade_module_send_success > 0) begin
             pixel_data <= constant.GREEN;   
         end else if (state == STATE_INPUT_SLAVE_ID) begin
-            pixel_data <= constant.WHITE;
+            pixel_data <= input_id_pixel_data;
+            control_seg <= input_id_seg;
+            control_an <= input_id_an;
+            control_dp <= input_id_dp;
         end else if (state == STATE_MENU) begin
             pixel_data <= menu_page_pixel_data;
             control_seg <= menu_seg;
@@ -279,7 +322,7 @@ module menuCode#(
         end else if (state == STATE_TABLE_VIEW) begin
             pixel_data <= table_view_pixel_data;
         end else if (state == STATE_CURRENT_TRADE) begin
-            pixel_data <= constant.ORANGE;
+            pixel_data <= last_packet_pixel_data;
         end
     end
 

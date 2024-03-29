@@ -20,7 +20,8 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module view_packet(input [15:0] price, quantity, stock_id,
+module view_packet(input [7:0] price, quantity, stock_id, 
+    input action,
     input [12:0] pixel_index,
     output [15:0] packet_pixel_data
     );
@@ -45,14 +46,14 @@ module view_packet(input [15:0] price, quantity, stock_id,
     text_dynamic #(4) price_num_display_module(
         .x(xpos), .y(ypos), 
         .color(constant.CYAN), .background(constant.BLACK), 
-        .text_y_pos(10), .string(price_num), .offset(0), 
+        .text_y_pos(9), .string(price_num), .offset(0), 
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(price_num_pixel_data));
             
     wire [15:0] quantity_pixel_data;
     text_dynamic #(8) quantity_module(
         .x(xpos), .y(ypos), 
         .color(constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(20), .string("QUANTITY"), .offset(0), //12*6), 
+        .text_y_pos(18), .string("QUANTITY"), .offset(0), //12*6), 
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(quantity_pixel_data));
         
     wire [8*4-1:0] quantity_num;
@@ -61,14 +62,14 @@ module view_packet(input [15:0] price, quantity, stock_id,
     text_dynamic #(4) quantity_num_display_module(
         .x(xpos), .y(ypos), 
         .color(constant.CYAN), .background(constant.BLACK), 
-        .text_y_pos(30), .string(quantity_num), .offset(0), 
+        .text_y_pos(27), .string(quantity_num), .offset(0), 
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(quantity_num_pixel_data));
                 
     wire [15:0] stock_id_pixel_data;
     text_dynamic #(8) stock_module(
         .x(xpos), .y(ypos), 
         .color(constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(40), .string("STOCK ID"), .offset(0), //12*6), 
+        .text_y_pos(36), .string("STOCK ID"), .offset(0), //12*6), 
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(stock_id_pixel_data));
         
     wire [8*4-1:0] stock_num;
@@ -77,8 +78,15 @@ module view_packet(input [15:0] price, quantity, stock_id,
     text_dynamic #(4) stock_num_display_module(
         .x(xpos), .y(ypos), 
         .color(constant.CYAN), .background(constant.BLACK), 
-        .text_y_pos(50), .string(stock_num), .offset(0), 
+        .text_y_pos(45), .string(stock_num), .offset(0), 
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(stock_num_pixel_data));
+        
+    wire [15:0] action_pixel_data;
+    text_dynamic #(4) action_module(
+        .x(xpos), .y(ypos), 
+        .color(constant.WHITE), .background(constant.BLACK), 
+        .text_y_pos(54), .string(action == 0 ? "BUY " : "SELL"), .offset(0), //12*6), 
+        .repeat_flag(0), .x_pos_offset(0), .pixel_data(action_pixel_data));
             
     always @ (*) begin
         xpos <= pixel_index % 96;
@@ -86,7 +94,8 @@ module view_packet(input [15:0] price, quantity, stock_id,
         
         pixel_data <= price_pixel_data | price_num_pixel_data |
                       quantity_pixel_data | quantity_num_pixel_data |
-                      stock_id_pixel_data | stock_num_pixel_data;
+                      stock_id_pixel_data | stock_num_pixel_data |
+                      action_pixel_data;
     end
     
 endmodule

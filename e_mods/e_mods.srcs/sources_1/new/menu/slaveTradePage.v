@@ -31,6 +31,7 @@ module slaveTradePage(
     output reg [31:0] stock_id, 
     output reg [31:0] price, 
     output reg [31:0] quantity, 
+    output reg action,
     output reg done = 0
     );
     
@@ -41,7 +42,7 @@ module slaveTradePage(
     /* price adjustment code --------------------------------------------------------------*/
     reg [15:0] key_in_value = 16'd1000;
     reg prev_btnC=0, prev_btnU=0, prev_btnL=0, prev_btnR=0, prev_btnD=0;
-    reg buy_sell_state;
+    reg buy_sell_state = 0;
 
     reg debounce = 0;
     reg debounce_timer = 0;
@@ -71,12 +72,16 @@ module slaveTradePage(
                 debounce <= 1;
             end
             
-            if (prev_btnL == 1 && btnL == 0) begin
+            if (pageNo == 3) begin
+                if (prev_btnL == 1 && btnL == 0) begin
                 buy_sell_state <= ~buy_sell_state;
-            end
+                debounce <= 1;
+                end
             
-            if (prev_btnR == 1 && btnR == 0) begin
+                if (prev_btnR == 1 && btnR == 0) begin
                 buy_sell_state <= ~buy_sell_state;
+                debounce <= 1;
+                end
             end
             
             prev_btnC <= btnC; prev_btnU <= btnU; prev_btnL <= btnL; 
@@ -104,6 +109,7 @@ module slaveTradePage(
         end else if (pageNo == 3) begin
             pageNo <= 4;
         end else if (pageNo == 4) begin
+            action <= buy_sell_state;
             done <= 1;
         end else begin
             pageNo <= 0;
@@ -208,7 +214,7 @@ module slaveTradePage(
     text_dynamic #(6) select_module(
         .x(xpos), .y(ypos), 
         .color(constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(0), .string("SELECT"), .offset(0), //12*6), 
+        .text_y_pos(0), .string("ACTION"), .offset(0), //12*6), 
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(select_pixel_data));    
         
     wire [15:0] buy_pixel_data;
@@ -222,11 +228,11 @@ module slaveTradePage(
     text_dynamic #(4) sell_module(
         .x(xpos), .y(ypos), 
         .color(buy_sell_state == 1 ? constant.RED : constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(0), .string("SELL"), .offset(0), //12*6), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(sell_pixel_data));
+        .text_y_pos(10), .string("SELL"), .offset(0), //12*6), 
+        .repeat_flag(0), .x_pos_offset(20), .pixel_data(sell_pixel_data));
         
     wire [15:0] done_pixel_data;
-    view_packet view_packet_data(price, quantity, stock_id, pixel_index, done_pixel_data);
+    view_packet view_packet_data(price, quantity, stock_id, action, pixel_index, done_pixel_data);
 
     always @ (*) begin
         xpos = pixel_index % 96;
@@ -243,7 +249,7 @@ module slaveTradePage(
                 pixel_data <= set_stock_pixel_data | stock_num_pixel_data;
             end
             3: begin
-                pixel_data <= buy_pixel_data | sell_pixel_data;
+                pixel_data <= select_pixel_data | buy_pixel_data | sell_pixel_data;
             end
             4: begin
                 pixel_data <= done_pixel_data;
