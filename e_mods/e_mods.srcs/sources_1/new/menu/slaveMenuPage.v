@@ -20,7 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module slavePageTwo(
+module slaveMenuPage(
     // Control
     input clk,
     // LEDs, Switches, Buttons

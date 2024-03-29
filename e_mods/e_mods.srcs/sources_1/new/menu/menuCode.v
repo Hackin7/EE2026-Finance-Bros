@@ -47,12 +47,14 @@ module menuCode#(
     wire [3:0] pageOne_an;
     wire [31:0] price, qty, stock_id;
     wire pageOne_done;
-    slavePageOne pageOne(
+    slaveTradePage pageOne(
         .clk(clk), .reset(pageOne_reset), .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
         .sw(sw), .pixel_index(pixel_index), .oled_pixel_data(pageOne_pixel_data),
         .seg(pageOne_seg), .dp(pageOne_dp), .an(pageOne_an),
         .stock_id(stock_id), .price(price), .qty(qty), .done(pageOne_done)
     );
+    
+    
 
 
     /* UART Control --------------------------------------------------------------------*/
