@@ -39,7 +39,7 @@ module slaveTradePage(
     reg [31:0] timeout = 32'd1;
     
     /* price adjustment code --------------------------------------------------------------*/
-    reg [15:0] key_in_value = 16'd1000;
+    reg [15:0] key_in_value = 16'd0010;
     reg prev_btnC=0, prev_btnU=0, prev_btnL=0, prev_btnR=0, prev_btnD=0;
     reg buy_sell_state;
 
@@ -57,12 +57,12 @@ module slaveTradePage(
             debounce <= debounce + 1;
         end else begin
             if (prev_btnU == 1 && btnU == 0) begin
-                key_in_value <= key_in_value == 9999 ? 0 : key_in_value + 1;
+                key_in_value <= key_in_value == 9999 ? 0 : key_in_value + (sw[15] ? 1000 : (sw[14] ? 100 : (sw[13] ? 10 : 1)));
                 debounce <= 1;
             end
             
             if (prev_btnD == 1 && btnD == 0) begin
-                key_in_value <= key_in_value == 0 ? 9999 : key_in_value - 1;
+                key_in_value <= key_in_value == 0 ? 9999 : key_in_value - (sw[15] ? 1000 : (sw[14] ? 100 : (sw[13] ? 10 : 1)));
                 debounce <= 1;
             end
 
@@ -114,7 +114,7 @@ module slaveTradePage(
     always @ (posedge clk) begin
         if (reset) begin
             pageNo <= 4'd0;
-            key_in_value <= 2000;
+            key_in_value <= 0;
             done <= 1'b0;
             prev_btnC<=0; prev_btnU<=0; prev_btnL<=0; prev_btnR<=0; prev_btnD<=0;
         end else begin

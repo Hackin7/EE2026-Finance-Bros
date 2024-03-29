@@ -81,9 +81,6 @@ module trade_module_slave #(
         end else begin
             fsm_change_state(S2);
         end
-        if (sw[10]) begin
-            fsm_state = 8'd2;
-        end
     end
 
 

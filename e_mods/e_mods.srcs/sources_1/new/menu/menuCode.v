@@ -219,7 +219,7 @@ module menuCode#(
             state <= STATE_MENU;
             pageOne_reset <= 1;
             //trade_slave_account_id <= account_id;
-            trade_slave_type <= trade_packet.TYPE_BUY;
+            trade_slave_type <= sw[15] ? trade_packet.TYPE_SELL : trade_packet.TYPE_BUY;
             trade_slave_stock_id <= stock_id;
             trade_slave_qty <= qty;
             trade_slave_price <= price;
@@ -312,8 +312,6 @@ module menuCode#(
         end
         button_control();
         trade_module_slave_processing();
-        if  (sw[9]) 
-            trade_slave_trigger <= 1;
     end
 
     wire [12:0] pixel_index = oled_pixel_index;

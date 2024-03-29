@@ -83,10 +83,16 @@ from serial_comms import *
 #get_account_balance(0)
 #print(packet_read())
 
-def test_master():
+def test_master_buy():
     send_with_response(lambda: buy(0, 0, 1, 15))
     send_with_response(lambda: get_account_balance(0))
     send_with_response(lambda: get_account_stock(0))
+
+def test_master_sell():
+    send_with_response(lambda: sell(0, 0, 1, 15))
+    send_with_response(lambda: get_account_balance(0))
+    send_with_response(lambda: get_account_stock(0))
+
 
 ### Testing Trading System
 def approve_buy():
@@ -101,9 +107,11 @@ def return_account():
     send_with_response(lambda: return_account_balance(99))
     return_account_stock(100, 10, 1)
 
-test_master()
+#test_master()
 	
 #approve_buy()	
 #ok()
 #return_account()
 #print(packet_read())
+
+test_master_sell()

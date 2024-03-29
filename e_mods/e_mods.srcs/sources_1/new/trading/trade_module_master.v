@@ -253,72 +253,93 @@ module trade_module_master #(
         .price(slave2_price)
     );
     
+    reg uart_operation = 0; // extra clock cycle thing
     task fsm_uart_receive();
     begin
         uart_rx_clear <= 0;
         if (slave_type == parser.TYPE_INVALID) begin
             // Do nothing
-        end else if (slave_type == parser.TYPE_BUY) begin
+            uart_operation <= 0;
+        end else if (slave_type == parser.TYPE_BUY && !uart_operation) begin
             trade_approve_buy();
+            uart_operation <= 1;
             uart_rx_clear <= 1;
-        end else if (slave_type == parser.TYPE_SELL) begin
+        end else if (slave_type == parser.TYPE_SELL && !uart_operation) begin
             trade_approve_sell();
+            uart_operation <= 1;
             uart_rx_clear <= 1;
         end else if (slave_type == parser.TYPE_GET_ACCOUNT_BALANCE) begin
             trade_return_account_balance();
+            uart_operation <= 1;
             uart_rx_clear <= 1;
         end else if (slave_type == parser.TYPE_GET_ACCOUNT_STOCKS) begin
             trade_return_account_stocks();
+            uart_operation <= 1;
             uart_rx_clear <= 1;
         end else begin
             // Do nothing
+            uart_operation <= 0;
         end
     end
     endtask
 
     
+    reg uart1_operation = 0;
     task fsm_uart1_receive();
     begin
         uart1_rx_clear <= 0;
         if (slave1_type == parser.TYPE_INVALID) begin
             // Do nothing
-        end else if (slave1_type == parser.TYPE_BUY) begin
+            uart1_operation <= 0;
+        end else if (slave1_type == parser.TYPE_BUY && !uart1_operation) begin
             trade1_approve_buy();
+            uart1_operation <= 1;
             uart1_rx_clear <= 1;
-        end else if (slave1_type == parser.TYPE_SELL) begin
+        end else if (slave1_type == parser.TYPE_SELL && !uart1_operation) begin
             trade1_approve_sell();
+            uart1_operation <= 1;
             uart1_rx_clear <= 1;
         end else if (slave1_type == parser.TYPE_GET_ACCOUNT_BALANCE) begin
             trade1_return_account_balance();
+            uart1_operation <= 1;
             uart1_rx_clear <= 1;
         end else if (slave1_type == parser.TYPE_GET_ACCOUNT_STOCKS) begin
             trade1_return_account_stocks();
+            uart1_operation <= 1;
             uart1_rx_clear <= 1;
         end else begin
             // Do nothing
+            uart1_operation <= 0;
         end
     end
     endtask
 
+    reg uart2_operation = 0;
     task fsm_uart2_receive();
     begin
         uart2_rx_clear <= 0;
         if (slave2_type == parser.TYPE_INVALID) begin
             // Do nothing
-        end else if (slave2_type == parser.TYPE_BUY) begin
+            uart2_operation <= 0;
+        end else if (slave2_type == parser.TYPE_BUY && !uart2_operation) begin
             trade2_approve_buy();
+            uart2_operation <= 1;
             uart2_rx_clear <= 1;
-        end else if (slave2_type == parser.TYPE_SELL) begin
+        end else if (slave2_type == parser.TYPE_SELL && !uart2_operation) begin
             trade2_approve_sell();
+            uart2_operation <= 1;
             uart2_rx_clear <= 1;
         end else if (slave2_type == parser.TYPE_GET_ACCOUNT_BALANCE) begin
             trade2_return_account_balance();
+            uart2_operation <= 1;
             uart2_rx_clear <= 1;
         end else if (slave2_type == parser.TYPE_GET_ACCOUNT_STOCKS) begin
             trade2_return_account_stocks();
+            uart2_operation <= 1;
             uart2_rx_clear <= 1;
         end else begin
             // Do nothing
+            uart2_operation <= 0;
         end
     end
     endtask
@@ -356,7 +377,7 @@ module trade_module_master #(
         if (can_buy && price_match_buy) begin
             // Math -----------------------------------------
             accounts <= (
-                account_update_balance(slave_account_id, curr_account_balance - (slave_price*slave_qty),
+                account_update_balance(slave_account_id, curr_account_balance - (amount_paid),
                 account_update_stock( slave_account_id, slave_stock_id, curr_account_stock_qty + slave_qty,
                 accounts))
             );
@@ -458,7 +479,7 @@ module trade_module_master #(
         if (can1_buy && price1_match_buy) begin
             // Math -----------------------------------------
             accounts <= (
-                account_update_balance(slave1_account_id, curr1_account_balance - (slave1_price*slave1_qty),
+                account_update_balance(slave1_account_id, curr1_account_balance - amount1_paid, // - (slave1_price*slave1_qty),
                 account_update_stock( slave1_account_id, slave1_stock_id, curr1_account_stock_qty + slave1_qty,
                 accounts))
             );
@@ -560,7 +581,7 @@ module trade_module_master #(
         if (can2_buy && price2_match_buy) begin
             // Math -----------------------------------------
             accounts <= (
-                account_update_balance(slave2_account_id, curr2_account_balance - (slave2_price*slave2_qty),
+                account_update_balance(slave2_account_id, curr2_account_balance - (amount2_paid),
                 account_update_stock( slave2_account_id, slave2_stock_id, curr2_account_stock_qty + slave2_qty,
                 accounts))
             );
