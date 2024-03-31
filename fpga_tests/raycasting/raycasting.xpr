@@ -197,9 +197,8 @@
       </File>
       <File Path="$PSRCDIR/sources_1/imports/helper_scripts/sqrt.mem">
         <FileInfo>
-          <Attr Name="UserDisabled" Val="1"/>
           <Attr Name="ImportPath" Val="$PPRDIR/../../helper_scripts/sqrt.mem"/>
-          <Attr Name="ImportTime" Val="1711858637"/>
+          <Attr Name="ImportTime" Val="1711874104"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>

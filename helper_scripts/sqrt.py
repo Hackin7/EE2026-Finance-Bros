@@ -16,11 +16,10 @@ def to_byte(val):
 
 f = open("sqrt.mem", "w")
 
-for i in range(2**24): #12
-    value = int(i/2**12) / 2 ** 8
-    value2 = int(i % 2**12) / 2 ** 8
+for i in range(2**16): #12
+    value = int(i) / 2 ** 8
 
-    output_val = (value ** 2 + value2 ** 2) ** 0.5
+    output_val = math.sqrt(value)
     
     output = int(output_val * (2**8))
     #print(i, value, value2, output_val, output)

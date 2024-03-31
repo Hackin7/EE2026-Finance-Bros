@@ -13,7 +13,7 @@ def to_hex(bytes):
 def to_byte(val):
     return int(val * (2**8)).to_bytes(2)
 
-#mode = "sin"
+mode = "sin"
 if mode == "sin":f = open("sin.mem", "w")
 elif mode == "cos": f = open("cos.mem", "w")
 else: f = open("cos.mem", "w")

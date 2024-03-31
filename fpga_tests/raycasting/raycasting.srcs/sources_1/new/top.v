@@ -78,7 +78,7 @@ module top (
     
     reg signed [15:0] sin_array [65535:0]; // 2nd index is size of array, not bit
     reg signed [15:0] cos_array [65535:0];
-    //reg [15:0] sqrt_array [16777216:0];
+    //reg [15:0] sqrt_array [65535:0];
     initial begin
         //$display("Loading rom.");
         $readmemh("sin.mem", sin_array);
@@ -107,8 +107,8 @@ module top (
     reg [BW-1:0] distance=9;
     
     // Player Variables
-    reg [BW-1:0] x = 4 << BW_DEC;
-    reg [BW-1:0] y = 4 << BW_DEC;
+    reg [BW-1:0] x = 2 << BW_DEC;
+    reg [BW-1:0] y = 2 << BW_DEC;
     reg [BW-1+1:0] angle = 90 << BW_DEC; // add 1 bit to range 360
     wire [BW-1:0] angle_processed = (
         angle > (180 << BW_DEC) ? (360 << BW_DEC) - angle : angle
@@ -131,9 +131,9 @@ module top (
     reg signed [BW-1:0] raycast_y = 0;
     wire [7:0] map_index = (raycast_y >> BW_DEC)*world_width + (raycast_x >> BW_DEC);
     
-    wire signed [BW-1:0] raycast_x_delta = raycast_x < x ? (x - raycast_x) : (raycast_x - x);
-    wire signed [BW-1:0] raycast_y_delta = raycast_y < y ? (y - raycast_y) : (raycast_y - y);
-    wire [BW-1:0] dist_sq = (raycast_x_delta * raycast_x_delta) + (raycast_y_delta * raycast_y_delta);
+    //wire signed [BW-1:0] raycast_x_delta = raycast_x < x ? (x - raycast_x) : (raycast_x - x);
+    //wire signed [BW-1:0] raycast_y_delta = raycast_y < y ? (y - raycast_y) : (raycast_y - y);
+    //wire [BW-1:0] dist_sq = (raycast_x_delta * raycast_x_delta) + (raycast_y_delta * raycast_y_delta);
           
     
     
@@ -143,8 +143,8 @@ module top (
     
     always @ (posedge clk) begin
         if (world_map[map_index] == 0) begin
-            raycast_x <= raycast_x + (dx >> 1);
-            raycast_y <= raycast_y + (dy >> 1);
+            raycast_x <= raycast_x + (dx>>2);
+            raycast_y <= raycast_y + (dy>>2);
             raycast_step <= raycast_step + 1;
             
             if (raycast_step > 50) begin
@@ -154,7 +154,7 @@ module top (
             end
         end else begin
            // trigger
-           distance <= dist_sq;
+           distance <= raycast_step * cos_array[oled_pixel_index] >> BW_DEC; //sqrt_array[dist_sq];
            raycast_step <= 0;
            raycast_x <= x;
            raycast_y <= y;
@@ -186,6 +186,7 @@ module top (
     reg [15:0] pixel_data = 16'h0000;
     assign oled_pixel_data = pixel_data;
     
+    wire [7:0] colour_factor = (1 + distance/(8));
     assign oled_xpos = oled_pixel_index % 96;
     assign oled_ypos = oled_pixel_index / 96;
     always @(posedge clk) begin
@@ -196,8 +197,8 @@ module top (
         if (oled_ypos >= 32) begin
             pixel_data <= constant.GREEN;
         end
-        if (32 - (sw/distance) <= oled_ypos && oled_ypos <= 32 + (20/distance)) begin
-            pixel_data <= {(5'b11111 / (1 + distance/8)) , 6'b0, 5'b0};
+        if (32 - (sw/distance) <= oled_ypos && oled_ypos <= 32 + ((sw)/distance)) begin
+            pixel_data <= {(5'b11111 / colour_factor) ,5'b11111 / colour_factor, 5'b0};
         end
     end
 endmodule
