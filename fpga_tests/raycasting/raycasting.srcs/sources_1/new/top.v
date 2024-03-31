@@ -87,6 +87,21 @@ module top (
     end
     
     
+    function [BW:0] min(input [BW:0] a, input [BW:0] b);
+    begin
+        min = a < b ? a : b;
+    end
+    endfunction
+    
+    function [BW-1:0] abs_cos(input [BW-1:0] a); 
+    begin
+        if (cos_array[a] < 0) begin
+            abs_cos = -cos_array[a];
+        end else begin
+            abs_cos = cos_array[a];
+        end
+    end
+    endfunction 
     /* -----------------------------------------------------*/
     
     parameter world_width = 8;
@@ -97,7 +112,7 @@ module top (
         8'b10000001,
         8'b10000001,
         8'b10000001,
-        8'b10010001,
+        8'b10000001,
         8'b10000001,
         8'b11111111
     };
@@ -107,11 +122,15 @@ module top (
     reg [BW-1:0] distance=9;
     
     // Player Variables
-    reg [BW-1:0] x = 2 << BW_DEC;
-    reg [BW-1:0] y = 2 << BW_DEC;
+    reg [BW-1+8:0] x_precise = (2 << BW_DEC) << 8;
+    reg [BW-1+8:0] y_precise = (2 << BW_DEC) << 8;
+    wire [BW-1:0] x = x_precise[BW-1+8:8];
+    wire [BW-1:0] y = y_precise[BW-1+8:8];
     reg [BW-1+1:0] angle = 90 << BW_DEC; // add 1 bit to range 360
     wire [BW-1:0] angle_processed = (
-        angle > (180 << BW_DEC) ? (360 << BW_DEC) - angle : angle
+        angle + (48 << BW_DEC) > (360 << BW_DEC) ? (angle+(48 << BW_DEC)) -  (360 << BW_DEC):
+        angle + (48 << BW_DEC) > (180 << BW_DEC) ? (360 << BW_DEC) - (angle+(48 << BW_DEC)) :
+        (angle+(48 << BW_DEC))
     );
     
     // Calculations
@@ -130,6 +149,7 @@ module top (
     reg signed [BW-1:0] raycast_x = 0;
     reg signed [BW-1:0] raycast_y = 0;
     wire [7:0] map_index = (raycast_y >> BW_DEC)*world_width + (raycast_x >> BW_DEC);
+    wire [BW-1:0] d_angle = oled_pixel_index < 48 ? (48 - oled_pixel_index) << BW_DEC : (oled_pixel_index-48) << BW_DEC;
     
     //wire signed [BW-1:0] raycast_x_delta = raycast_x < x ? (x - raycast_x) : (raycast_x - x);
     //wire signed [BW-1:0] raycast_y_delta = raycast_y < y ? (y - raycast_y) : (raycast_y - y);
@@ -137,15 +157,23 @@ module top (
           
     
     
-    assign led = (sw[0] ? raycast_x : sw[1] ? raycast_y : sw[2] ? angle[16:1] :  sw[3] ? raycast_step : 
-        sw[4] ? cos_array[angle] : sw[5] ? {world_map[map_index], map_index} : sw[6] ? raycast_angle: 16'hffff
+    assign led = (
+        sw[0] ? raycast_x : 
+        sw[1] ? raycast_y : 
+        sw[2] ? angle[16:1] :  
+        sw[3] ? raycast_step : 
+        sw[4] ? cos_array[angle] : 
+        sw[5] ? {world_map[map_index], map_index} : 
+        sw[6] ? raycast_angle: 
+        sw[7] ? distance:
+        16'hffff
     );
     
     always @ (posedge clk) begin
         if (world_map[map_index] == 0) begin
             raycast_x <= raycast_x + (dx>>2);
             raycast_y <= raycast_y + (dy>>2);
-            raycast_step <= raycast_step + 1;
+            raycast_step <= raycast_step + 2;
             
             if (raycast_step > 50) begin
                 raycast_step <= 0;
@@ -154,7 +182,10 @@ module top (
             end
         end else begin
            // trigger
-           distance <= raycast_step * cos_array[oled_pixel_index] >> BW_DEC; //sqrt_array[dist_sq];
+           distance <= (
+                raycast_step 
+                //* (abs_cos(d_angle) >> 3)
+            ); //sqrt_array[dist_sq];
            raycast_step <= 0;
            raycast_x <= x;
            raycast_y <= y;
@@ -169,16 +200,14 @@ module top (
         if (btnR)  begin
             angle[16:8] <= angle[16:8] == 360 ? 0 : angle[16:8]  + (1);
         end
-    end
-    
-    always @ (posedge clk_10hz) begin
+        
         if (btnU)  begin
-            x <= x + (cos_array[angle_processed] >> 6);
-            y <= y + (sin_array[angle_processed] >> 6);
+            x_precise <= x_precise + (cos_array[angle_processed] );
+            y_precise <= y_precise + (sin_array[angle_processed]);
         end
         if (btnD)  begin
-            x <= x - (cos_array[angle_processed] >> 6);
-            y <= y - (sin_array[angle_processed] >> 6);
+            x_precise <= x_precise - (cos_array[angle_processed]);
+            y_precise <= y_precise - (sin_array[angle_processed]);
         end
     end
     
@@ -186,10 +215,10 @@ module top (
     reg [15:0] pixel_data = 16'h0000;
     assign oled_pixel_data = pixel_data;
     
-    wire [7:0] colour_factor = (1 + distance/(8));
+    wire [7:0] colour_factor = (1 + distance/(1<<2));
     assign oled_xpos = oled_pixel_index % 96;
     assign oled_ypos = oled_pixel_index / 96;
-    always @(posedge clk) begin
+    always @(*) begin
         
         if (oled_ypos <= 32) begin
             pixel_data <= constant.CYAN;
@@ -198,7 +227,8 @@ module top (
             pixel_data <= constant.GREEN;
         end
         if (32 - (sw/distance) <= oled_ypos && oled_ypos <= 32 + ((sw)/distance)) begin
-            pixel_data <= {(5'b11111 / colour_factor) ,5'b11111 / colour_factor, 5'b0};
+            pixel_data <= {(5'b11111 / colour_factor), 5'b11111 / colour_factor, 5'b0};
         end
     end
 endmodule
+
