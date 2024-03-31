@@ -31,7 +31,7 @@ module top (
     clk_counter #(8, 8, 32) clk6p25m (clk, clk_6_25mhz);
 
     wire clk_10hz;
-    clk_counter #(5_000_000, 5_000_000, 32) clk10 (clk, clk_10hz);
+    clk_counter #(2_000_000, 2_000_000, 32) clk10 (clk, clk_10hz);
     //// 3.A OLED Setup //////////////////////////////////////
     // Inputs
     wire [7:0] Jx;
@@ -118,7 +118,7 @@ module top (
         angle + (oled_xpos << BW_DEC) > (360 << BW_DEC) 
             ? angle + (oled_xpos << BW_DEC) - (360 << BW_DEC)
         : angle + (oled_xpos << BW_DEC) > (180 << BW_DEC) 
-            ? (360 << BW_DEC) - angle + (oled_xpos << BW_DEC) 
+            ? (360 << BW_DEC) - (angle + (oled_xpos << BW_DEC)) 
         : angle + (oled_xpos << BW_DEC)
     );
     
