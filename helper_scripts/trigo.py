@@ -13,12 +13,18 @@ def to_hex(bytes):
 def to_byte(val):
     return int(val * (2**8)).to_bytes(2)
 
-#f = open("sin.mem", "w")
-f = open("cos.mem", "w")
+#mode = "sin"
+if mode == "sin":f = open("sin.mem", "w")
+elif mode == "cos": f = open("cos.mem", "w")
+else: f = open("cos.mem", "w")
+
 for i in range(2**16):
     value = i / 2**8
-    #output_val = math.sin(math.radians(value))
-    output_val = math.cos(math.radians(value))
+
+    if mode == "sin": output_val = math.sin(math.radians(value))
+    elif mode == "cos": output_val = math.cos(math.radians(value))
+    else: output_val = math.cos(math.radians(value))
+    
     output = int(output_val * (2**8))
     #print(i.to_bytes(2), value, output_val, output, to_resp(output_val), to_hex(to_resp(output_val)))
     f.write(to_hex(to_resp(output_val)) + "\n")

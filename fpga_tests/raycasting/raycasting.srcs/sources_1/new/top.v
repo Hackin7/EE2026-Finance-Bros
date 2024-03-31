@@ -30,6 +30,8 @@ module top (
     wire clk_6_25mhz;
     clk_counter #(8, 8, 32) clk6p25m (clk, clk_6_25mhz);
 
+    wire clk_100hz;
+    clk_counter #(1_000_000, 1_000_000, 32) clk10 (clk, clk_10hz);
     //// 3.A OLED Setup //////////////////////////////////////
     // Inputs
     wire [7:0] Jx;
@@ -60,6 +62,9 @@ module top (
     );*/
     
     /// Raycasting ////////////////////////////////////////////////
+    wire [7:0] oled_xpos;
+    wire [7:0] oled_ypos;
+    
     constants constant();
     parameter BW_INT=8;
     parameter BW_DEC=8;
@@ -70,10 +75,12 @@ module top (
     
     reg signed [15:0] sin_array [65535:0]; // 2nd index is size of array, not bit
     reg signed [15:0] cos_array [65535:0];
+    //reg [15:0] sqrt_array [16777216:0];
     initial begin
         //$display("Loading rom.");
         $readmemh("sin.mem", sin_array);
         $readmemh("cos.mem", cos_array);
+        //$readmemh("sqrt.mem", sqrt_array);
     end
     
     
@@ -82,11 +89,11 @@ module top (
     parameter world_width = 8;
     reg [63:0] world_map = 
     {
-        8'b01111111,
+        8'b11111111,
         8'b10000001,
+        8'b10001001,
         8'b10000001,
-        8'b10000001,
-        8'b10000001,
+        8'b10001001,
         8'b10000001,
         8'b10000001,
         8'b11111111
@@ -99,28 +106,34 @@ module top (
     // Player Variables
     reg [BW-1:0] x = 4 << BW_DEC;
     reg [BW-1:0] y = 4 << BW_DEC;
-    //reg [BW-1:0] angle = 0;
-    wire [BW-1:0] angle = 90 << BW_DEC;
+    reg [BW-1+1:0] angle = 90 << BW_DEC; // add 1 bit to range 360
+    wire angle_processed = angle > (180 << BW_DEC) ? (360 << BW_DEC) - angle : angle;
     
     // Calculations
     reg [7:0] raycast_step = 0;
     //wire [BW-1:0] raycast_angle = angle + oled_xpos;
+    wire signed [BW-1+1:0] raycast_angle = (
+        angle[BW-1:0] + (oled_xpos << BW_DEC) > (180 << BW_DEC) 
+        ? 
+        -180 + angle[BW-1:0] + (oled_xpos << BW_DEC) 
+        :
+         angle[BW-1:0] + (oled_xpos << BW_DEC)
+    );
     
-    wire [BW-1:0] raycast_angle = angle + oled_xpos << BW_DEC;
-    wire [BW-1:0] dx = cos_array[raycast_angle];
-    wire [BW-1:0] dy = sin_array[raycast_angle];
+    wire signed [BW-1:0] dx = cos_array[raycast_angle];
+    wire signed [BW-1:0] dy = sin_array[raycast_angle];
     reg signed [BW-1:0] raycast_x = 0;
     reg signed [BW-1:0] raycast_y = 0;
-    wire [BW-1:0] map_index = (raycast_y >> BW_DEC)*world_width + (raycast_x >> BW_DEC);
+    wire [7:0] map_index = (raycast_y >> BW_DEC)*world_width + (raycast_x >> BW_DEC);
     
-    assign led = (sw[0] ? raycast_x : sw[1] ? raycast_y : sw[2] ? raycast_angle :  sw[3] ? raycast_step : 
-        sw[4] ? dx : sw[5] ? map_index : 16'hffff
+    assign led = (sw[0] ? raycast_x : sw[1] ? raycast_y : sw[2] ? angle :  sw[3] ? raycast_step : 
+        sw[4] ? cos_array[angle] : sw[5] ? {world_map[map_index], map_index} : sw[6] ? raycast_angle: 16'hffff
     );
     
     always @ (posedge clk) begin
         if (world_map[map_index] == 0) begin
-            raycast_x <= raycast_x + (dx);
-            raycast_y <= raycast_y + (dy);
+            raycast_x <= raycast_x + (dx >> 1);
+            raycast_y <= raycast_y + (dy >> 1);
             raycast_step <= raycast_step + 1;
             
             if (raycast_step > 32) begin
@@ -130,16 +143,29 @@ module top (
             end
         end else begin
            // trigger
-           distance <= raycast_step;
+           distance <= raycast_step*2;
            raycast_step <= 0;
            raycast_x <= x;
            raycast_y <= y;
         end
+    end
+    
+    always @ (posedge clk_10hz) begin
+    
+        if (btnL)  begin
+            angle[15:8] <= angle[15:8] == -180 ? 180 : angle[15:8]  - (1);
+        end
+        if (btnR)  begin
+            angle[15:8] <= angle[15:8] == 180 ? -180 : angle[15:8]  + (1);
+        end
         
-        if (raycast_step > 200) begin
-            raycast_step <= 0;
-            raycast_x <= x;
-            raycast_y <= y;
+        if (btnU)  begin
+            x <= x + cos_array[angle];
+            y <= y + sin_array[angle];
+        end
+        if (btnR)  begin
+            x <= x - cos_array[angle];
+            y <= y - sin_array[angle];
         end
     end
     
@@ -147,11 +173,11 @@ module top (
     reg [15:0] pixel_data = 16'h0000;
     assign oled_pixel_data = pixel_data;
     
-    wire [7:0] oled_xpos = oled_pixel_index % 96;
-    wire [7:0] oled_ypos = oled_pixel_index / 96;
+    assign oled_xpos = oled_pixel_index % 96;
+    assign oled_ypos = oled_pixel_index / 96;
     always @(posedge clk) begin
         pixel_data <= constant.RED;
-        if (oled_ypos <= distance) begin
+        if (oled_ypos <= distance/* && oled_ypos >= 64 - distance*/) begin
             pixel_data <= constant.GREEN;
         end
     end
