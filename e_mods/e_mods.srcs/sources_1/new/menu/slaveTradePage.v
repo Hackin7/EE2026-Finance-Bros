@@ -48,47 +48,6 @@ module slaveTradePage(
     reg debounce_timer = 0;
     parameter DEBOUNCE_TIME = 50_000_000; // 100ms
 
-    task button_control();
-    begin
-        if (debounce) begin
-            if (debounce_timer == DEBOUNCE_TIME-1) begin
-                debounce <= 0;
-                debounce_timer <= 0;
-            end
-            debounce <= debounce + 1;
-        end else begin
-            if (prev_btnU == 1 && btnU == 0) begin
-                key_in_value <= key_in_value == 9999 ? 0 : key_in_value + 1;
-                debounce <= 1;
-            end
-            
-            if (prev_btnD == 1 && btnD == 0) begin
-                key_in_value <= key_in_value == 0 ? 9999 : key_in_value - 1;
-                debounce <= 1;
-            end
-
-            if (prev_btnC == 1 && btnC == 0) begin
-                nextState();
-                debounce <= 1;
-            end
-            
-            if (pageNo == 3) begin
-                if (prev_btnL == 1 && btnL == 0) begin
-                buy_sell_state <= ~buy_sell_state;
-                debounce <= 1;
-                end
-            
-                if (prev_btnR == 1 && btnR == 0) begin
-                buy_sell_state <= ~buy_sell_state;
-                debounce <= 1;
-                end
-            end
-            
-            prev_btnC <= btnC; prev_btnU <= btnU; prev_btnL <= btnL; 
-            prev_btnR <= btnR; prev_btnD <= btnD;
-        end
-    end
-    endtask
     /* State Machine Code ------------------------------------------------------------------*/
     reg [3:0] pageNo = 4'd0;
     task nextState();
@@ -116,6 +75,44 @@ module slaveTradePage(
         end
     end
     endtask
+    
+    task button_control();
+    begin
+        if (debounce) begin
+            if (debounce_timer == DEBOUNCE_TIME-1) begin
+                debounce <= 0;
+                debounce_timer <= 0;
+            end
+            debounce <= debounce + 1;
+        end else begin
+            if (prev_btnU == 1 && btnU == 0) begin
+                key_in_value <= key_in_value == 9999 ? 0 : key_in_value + 1;
+                debounce <= 1;
+            end
+            
+            if (prev_btnD == 1 && btnD == 0) begin
+                key_in_value <= key_in_value == 0 ? 9999 : key_in_value - 1;
+                debounce <= 1;
+            end
+
+            if (prev_btnC == 1 && btnC == 0) begin
+                nextState();
+                debounce <= 1;
+            end
+            
+            if (pageNo == 3) begin
+                if ((prev_btnL == 1 && btnL == 0) | (prev_btnR == 1 && btnR == 0)) begin
+                buy_sell_state <= buy_sell_state == 0 ? 1 : 0;
+                debounce <= 1;
+                end
+            end
+            
+            prev_btnC <= btnC; prev_btnU <= btnU; prev_btnL <= btnL; 
+            prev_btnR <= btnR; prev_btnD <= btnD;
+        end
+    end
+    endtask
+    
 
     always @ (posedge clk) begin
         if (reset) begin
