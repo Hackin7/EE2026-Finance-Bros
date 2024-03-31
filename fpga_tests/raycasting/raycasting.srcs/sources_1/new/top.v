@@ -30,8 +30,11 @@ module top (
     wire clk_6_25mhz;
     clk_counter #(8, 8, 32) clk6p25m (clk, clk_6_25mhz);
 
+    wire clk_100hz;
+    clk_counter #(2_000_000, 2_000_000, 32) clk100 (clk, clk_100hz);
+    
     wire clk_10hz;
-    clk_counter #(2_000_000, 2_000_000, 32) clk10 (clk, clk_10hz);
+    clk_counter #(10_000_000, 10_000_000, 32) clk10 (clk, clk_10hz);
     //// 3.A OLED Setup //////////////////////////////////////
     // Inputs
     wire [7:0] Jx;
@@ -91,10 +94,10 @@ module top (
     {
         8'b11111111,
         8'b10000001,
-        8'b10001001,
         8'b10000001,
-        8'b10001001,
         8'b10000001,
+        8'b10000001,
+        8'b10010001,
         8'b10000001,
         8'b11111111
     };
@@ -128,6 +131,12 @@ module top (
     reg signed [BW-1:0] raycast_y = 0;
     wire [7:0] map_index = (raycast_y >> BW_DEC)*world_width + (raycast_x >> BW_DEC);
     
+    wire signed [BW-1:0] raycast_x_delta = raycast_x < x ? (x - raycast_x) : (raycast_x - x);
+    wire signed [BW-1:0] raycast_y_delta = raycast_y < y ? (y - raycast_y) : (raycast_y - y);
+    wire [BW-1:0] dist_sq = (raycast_x_delta * raycast_x_delta) + (raycast_y_delta * raycast_y_delta);
+          
+    
+    
     assign led = (sw[0] ? raycast_x : sw[1] ? raycast_y : sw[2] ? angle[16:1] :  sw[3] ? raycast_step : 
         sw[4] ? cos_array[angle] : sw[5] ? {world_map[map_index], map_index} : sw[6] ? raycast_angle: 16'hffff
     );
@@ -138,21 +147,21 @@ module top (
             raycast_y <= raycast_y + (dy >> 1);
             raycast_step <= raycast_step + 1;
             
-            if (raycast_step > 32) begin
+            if (raycast_step > 50) begin
                 raycast_step <= 0;
                 raycast_x <= x;
                 raycast_y <= y;
             end
         end else begin
            // trigger
-           distance <= raycast_step*2;
+           distance <= dist_sq;
            raycast_step <= 0;
            raycast_x <= x;
            raycast_y <= y;
         end
     end
     
-    always @ (posedge clk_10hz) begin
+    always @ (posedge clk_100hz) begin
     
         if (btnL)  begin
             angle[16:8] <= angle[16:8] == 0 ? 360 : angle[16:8] - (1);
@@ -160,14 +169,16 @@ module top (
         if (btnR)  begin
             angle[16:8] <= angle[16:8] == 360 ? 0 : angle[16:8]  + (1);
         end
-        
+    end
+    
+    always @ (posedge clk_10hz) begin
         if (btnU)  begin
-            x <= x + (cos_array[angle_processed]>>4);
-            y <= y + (sin_array[angle_processed]>>4);
+            x <= x + (cos_array[angle_processed] >> 6);
+            y <= y + (sin_array[angle_processed] >> 6);
         end
         if (btnD)  begin
-            x <= x - (cos_array[angle_processed]>>4);
-            y <= y - (sin_array[angle_processed]>>4);
+            x <= x - (cos_array[angle_processed] >> 6);
+            y <= y - (sin_array[angle_processed] >> 6);
         end
     end
     
@@ -178,13 +189,15 @@ module top (
     assign oled_xpos = oled_pixel_index % 96;
     assign oled_ypos = oled_pixel_index / 96;
     always @(posedge clk) begin
-        pixel_data <= {(5'b11111 / (1 + distance/8)) , 6'b0, 5'b0};
-        if (oled_ypos <= distance) begin
+        
+        if (oled_ypos <= 32) begin
             pixel_data <= constant.CYAN;
         end
-        if (oled_ypos >= 64 - distance) begin
+        if (oled_ypos >= 32) begin
             pixel_data <= constant.GREEN;
         end
-        
+        if (32 - (sw/distance) <= oled_ypos && oled_ypos <= 32 + (20/distance)) begin
+            pixel_data <= {(5'b11111 / (1 + distance/8)) , 6'b0, 5'b0};
+        end
     end
 endmodule
