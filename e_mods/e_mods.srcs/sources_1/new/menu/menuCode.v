@@ -35,7 +35,15 @@ module menuCode#(
         output uart_tx_trigger,
         output uart_rx_clear
     );
-    
+    wire [12:0] pixel_index = oled_pixel_index;
+    reg [15:0] pixel_data = 16'b0;
+    assign oled_pixel_data = pixel_data;
+    reg [6:0] control_seg;
+    reg control_dp;
+    reg [3:0] control_an;
+    assign seg = control_seg;
+    assign dp = control_dp;
+    assign an = control_an;
     //constants library
     constants constant();
     
@@ -76,7 +84,6 @@ module menuCode#(
     wire [3:0] input_id_an;
     wire [31:0] account_id;
     wire input_id_done;
-
     set_id slave_input_id(
         .clk(clk), .reset(set_id_reset),
         .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
@@ -182,7 +189,7 @@ module menuCode#(
     reg prev_btnC=0, prev_btnU=0, prev_btnL=0, prev_btnR=0, prev_btnD=0;
 
     reg debounce = 0;
-    reg debounce_timer = 0;
+    reg [31:0] debounce_timer = 0;
     parameter DEBOUNCE_TIME = 30_000_000; // 100ms
     
 
@@ -206,8 +213,8 @@ module menuCode#(
     endtask
     
     /* State Machine Code ------------------------------------------------------------------*/
-    reg [3:0] state = 4'd0;
-    parameter STATE_INPUT_SLAVE_ID = 0;
+    reg [3:0] state = 4'd6;
+    parameter STATE_INPUT_SLAVE_ID = 6;
     parameter STATE_MENU = 1;
     parameter STATE_ADD_TRADE = 2;
     parameter STATE_FAIL_ADD_TRADE = 3;
@@ -215,7 +222,7 @@ module menuCode#(
     parameter STATE_CURRENT_TRADE = 5;
 
     task state_set_id_handle(); begin
-        if (input_id_done) begin
+        if (prev_btnC == 1 && btnC == 0) begin
             trade_slave_account_id <= account_id;
             debounce <= 1;
             set_id_reset <= 1;
@@ -231,19 +238,16 @@ module menuCode#(
                 debounce <= 1;
                 if (menu_button_state == 0) begin
                     state <= STATE_TABLE_VIEW;
-                    menu_button_state <= 0;
                 end else if (menu_button_state == 1) begin
                     state <= STATE_CURRENT_TRADE;
-                    menu_button_state <= 0;
                 end else if (menu_button_state == 2) begin
                     state <= STATE_ADD_TRADE;
-                    menu_button_state <= 0;
                     pageOne_reset <= 0;
                 end else if (menu_button_state == 3) begin
                     state <= STATE_INPUT_SLAVE_ID;
                     set_id_reset <= 0;
-                    menu_button_state <= 0;
                 end
+                menu_button_state <= 0;
             end
             if (prev_btnU == 1 && btnU == 0) begin
                 menu_button_state <= menu_button_state == 0 ? 3 : menu_button_state - 1;
@@ -360,16 +364,6 @@ module menuCode#(
         button_control();
         trade_module_slave_processing();
     end
-
-    wire [12:0] pixel_index = oled_pixel_index;
-    reg [15:0] pixel_data = 16'b0;
-    assign oled_pixel_data = pixel_data;
-    reg [6:0] control_seg;
-    reg control_dp;
-    reg [3:0] control_an;
-    assign seg = control_seg;
-    assign dp = control_dp;
-    assign an = control_an;
 
     always @ (*) begin
         if (trade_module_send_success > 0) begin
