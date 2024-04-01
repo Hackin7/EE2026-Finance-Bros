@@ -31,6 +31,7 @@ module slaveTradePage(
     output reg [31:0] stock_id, 
     output reg [31:0] price, 
     output reg [31:0] quantity, 
+    output reg action,
     output reg done = 0
     );
     
@@ -41,12 +42,40 @@ module slaveTradePage(
     /* price adjustment code --------------------------------------------------------------*/
     reg [15:0] key_in_value = 16'd0010;
     reg prev_btnC=0, prev_btnU=0, prev_btnL=0, prev_btnR=0, prev_btnD=0;
-    reg buy_sell_state;
+    reg buy_sell_state = 0;
 
     reg debounce = 0;
     reg debounce_timer = 0;
     parameter DEBOUNCE_TIME = 50_000_000; // 100ms
 
+    /* State Machine Code ------------------------------------------------------------------*/
+    reg [3:0] pageNo = 4'd0;
+    task nextState();
+    begin
+        if (pageNo == 0) begin
+            price <= key_in_value;
+            key_in_value <= 0;
+            pageNo <= 1;
+        end else if (pageNo == 1) begin
+            quantity <= key_in_value;
+            key_in_value <= 0;
+            pageNo <= 2;
+
+        end else if (pageNo == 2) begin
+            stock_id <= key_in_value;
+            key_in_value <= 0;
+            pageNo <= 3;
+        end else if (pageNo == 3) begin
+            pageNo <= 4;
+        end else if (pageNo == 4) begin
+            action <= buy_sell_state;
+            done <= 1;
+        end else begin
+            pageNo <= 0;
+        end
+    end
+    endtask
+    
     task button_control();
     begin
         if (debounce) begin
@@ -71,12 +100,11 @@ module slaveTradePage(
                 debounce <= 1;
             end
             
-            if (prev_btnL == 1 && btnL == 0) begin
-                buy_sell_state <= ~buy_sell_state;
-            end
-            
-            if (prev_btnR == 1 && btnR == 0) begin
-                buy_sell_state <= ~buy_sell_state;
+            if (pageNo == 3) begin
+                if ((prev_btnL == 1 && btnL == 0) | (prev_btnR == 1 && btnR == 0)) begin
+                buy_sell_state <= buy_sell_state == 0 ? 1 : 0;
+                debounce <= 1;
+                end
             end
             
             prev_btnC <= btnC; prev_btnU <= btnU; prev_btnL <= btnL; 
@@ -84,32 +112,7 @@ module slaveTradePage(
         end
     end
     endtask
-    /* State Machine Code ------------------------------------------------------------------*/
-    reg [3:0] pageNo = 4'd0;
-    task nextState();
-    begin
-        if (pageNo == 0) begin
-            price <= key_in_value;
-            key_in_value <= 0;
-            pageNo <= 1;
-        end else if (pageNo == 1) begin
-            quantity <= key_in_value;
-            key_in_value <= 0;
-            pageNo <= 2;
-
-        end else if (pageNo == 2) begin
-            stock_id <= key_in_value;
-            key_in_value <= 0;
-            pageNo <= 3;
-        end else if (pageNo == 3) begin
-            pageNo <= 4;
-        end else if (pageNo == 4) begin
-            done <= 1;
-        end else begin
-            pageNo <= 0;
-        end
-    end
-    endtask
+    
 
     always @ (posedge clk) begin
         if (reset) begin
@@ -156,59 +159,30 @@ module slaveTradePage(
     reg [7:0] xpos; reg [7:0] ypos;
 
     // Text module
-    wire [15:0] price_pixel_data;
-    text_dynamic #(9) price_module(
-        .x(xpos), .y(ypos), 
-        .color(constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(0), .string("SET PRICE"), .offset(0), //12*6), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(price_pixel_data));
         
-    wire [8*4-1:0] price_num;
-    wire [15:0] price_num_pixel_data;
-    text_num_val_mapping price_num_module(key_in_value, price_num);
+    wire [15:0] setter_pixel_data;
+    text_dynamic #(12) setter_module(
+            .x(xpos), .y(ypos), 
+            .color(constant.WHITE), .background(constant.BLACK), 
+            .text_y_pos(0), .string(pageNo == 1 ? "SET PRICE   " :
+                (pageNo == 2 ? "SET QUANTITY" : "SET STOCK ID")
+            ), .offset(0), //12*6), 
+            .repeat_flag(0), .x_pos_offset(0), .pixel_data(setter_pixel_data));
+            
+    wire [8*4-1:0] num_string;
+    wire [15:0] num_string_pixel_data;
+    text_num_val_mapping price_num_module(key_in_value, num_string);
     text_dynamic #(4) text_num_display_module(
         .x(xpos), .y(ypos), 
         .color(constant.CYAN), .background(constant.BLACK), 
-        .text_y_pos(10), .string(price_num), .offset(0), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(price_num_pixel_data));
-
-    wire [15:0] quantity_pixel_data;
-    text_dynamic #(12) text_module(
-        .x(xpos), .y(ypos), 
-        .color(constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(0), .string("SET QUANTITY"), .offset(0), //12*6), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(quantity_pixel_data));
-        
-    wire [8*4-1:0] quantity_num;
-    wire [15:0] quantity_num_pixel_data;
-    text_num_val_mapping text_num_module(key_in_value, quantity_num);
-    text_dynamic #(4) quantity_num_display_module(
-        .x(xpos), .y(ypos), 
-        .color(constant.CYAN), .background(constant.BLACK), 
-        .text_y_pos(10), .string(quantity_num), .offset(0), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(quantity_num_pixel_data));
-    
-    wire [15:0] set_stock_pixel_data;
-    text_dynamic #(12) stock_module(
-        .x(xpos), .y(ypos), 
-        .color(constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(0), .string("SET STOCK ID"), .offset(0), //12*6), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(set_stock_pixel_data));
-
-    wire [8*4-1:0] stock_num;
-    wire [15:0] stock_num_pixel_data;
-    text_num_val_mapping stock_num_module(key_in_value, stock_num);
-    text_dynamic #(4) stock_num_display_module(
-        .x(xpos), .y(ypos), 
-        .color(constant.CYAN), .background(constant.BLACK), 
-        .text_y_pos(10), .string(stock_num), .offset(0), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(stock_num_pixel_data));
+        .text_y_pos(10), .string(num_string), .offset(0), 
+        .repeat_flag(0), .x_pos_offset(0), .pixel_data(num_string_pixel_data));
     
     wire [15:0] select_pixel_data;
     text_dynamic #(6) select_module(
         .x(xpos), .y(ypos), 
         .color(constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(0), .string("SELECT"), .offset(0), //12*6), 
+        .text_y_pos(0), .string("ACTION"), .offset(0), //12*6), 
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(select_pixel_data));    
         
     wire [15:0] buy_pixel_data;
@@ -222,33 +196,14 @@ module slaveTradePage(
     text_dynamic #(4) sell_module(
         .x(xpos), .y(ypos), 
         .color(buy_sell_state == 1 ? constant.RED : constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(0), .string("SELL"), .offset(0), //12*6), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(sell_pixel_data));
-        
-    wire [15:0] done_pixel_data;
-    view_packet view_packet_data(price, quantity, stock_id, pixel_index, done_pixel_data);
+        .text_y_pos(10), .string("SELL"), .offset(0), //12*6), 
+        .repeat_flag(0), .x_pos_offset(20), .pixel_data(sell_pixel_data));
 
     always @ (*) begin
         xpos = pixel_index % 96;
         ypos = pixel_index / 96;
-        
-        case (pageNo)
-            0: begin
-                pixel_data <= price_pixel_data | price_num_pixel_data;
-            end
-            1: begin
-                pixel_data <= quantity_pixel_data | quantity_num_pixel_data;
-            end
-            2: begin
-                pixel_data <= set_stock_pixel_data | stock_num_pixel_data;
-            end
-            3: begin
-                pixel_data <= buy_pixel_data | sell_pixel_data;
-            end
-            4: begin
-                pixel_data <= done_pixel_data;
-            end
-        endcase
+        pixel_data <= pageNo < 3 ? (setter_pixel_data | num_string_pixel_data) : 
+                (select_pixel_data | buy_pixel_data | sell_pixel_data) ;
         /* --------------------------------------------------------------------------*/
     end
     
