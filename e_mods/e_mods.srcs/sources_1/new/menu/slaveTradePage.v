@@ -45,7 +45,7 @@ module slaveTradePage(
     reg buy_sell_state = 0;
 
     reg debounce = 0;
-    reg debounce_timer = 0;
+    reg [31:0] debounce_timer = 0;
     parameter DEBOUNCE_TIME = 50_000_000; // 100ms
 
     /* State Machine Code ------------------------------------------------------------------*/

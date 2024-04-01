@@ -29,19 +29,18 @@ module set_id(
     output [15:0] oled_pixel_data,
     output [6:0] seg, output dp, output [3:0] an,
     output reg [31:0] account_id,
-    output reg done
+    output reg done = 0
     );
 
     constants constant();
-    
     reg [7:0] xpos, ypos;
     reg [15:0] pixel_data;
     assign oled_pixel_data = pixel_data;
     reg [31:0] key_in_value;
     reg prev_btnC=0, prev_btnU=0, prev_btnL=0, prev_btnR=0, prev_btnD=0;
     reg debounce = 0;
-    reg debounce_timer = 0;
-    parameter DEBOUNCE_TIME = 50_000_000; //100ms
+    reg [31:0] debounce_timer = 0;
+    parameter DEBOUNCE_TIME = 50; //100ms
     
     task button_control(); begin
         if (debounce) begin
@@ -66,7 +65,6 @@ module set_id(
                 account_id <= key_in_value;
                 done <= 1;
             end
-        
             prev_btnC <= btnC; prev_btnU <= btnU; prev_btnL <= btnL; 
             prev_btnR <= btnR; prev_btnD <= btnD;
         end
