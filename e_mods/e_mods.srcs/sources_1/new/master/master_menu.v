@@ -24,20 +24,15 @@ module master_menu(
     // Control
     input clk, input reset, 
     // LEDs, Switches, Buttons
-    input btnC, btnU, btnL, btnR, btnD, input [15:0] sw,
+    input [2:0] button_state,
     input [12:0] pixel_index,
-    output [15:0] oled_pixel_data,
-    output [6:0] seg, output dp, output [3:0] an,
-    output reg [31:0] stock_id, 
-    output reg [31:0] price, 
-    output reg [31:0] qty, 
-    output reg done=0
+    output [15:0] oled_pixel_data
     );
     
     reg [7:0] xpos, ypos;
     reg [15:0] pixel_data;
     assign oled_pixel_data = pixel_data;
-    reg [2:0] button_state;
+    constants constant();
     
     wire [15:0] all_user_pixel_data;
     text_dynamic #(14) all_user_module(

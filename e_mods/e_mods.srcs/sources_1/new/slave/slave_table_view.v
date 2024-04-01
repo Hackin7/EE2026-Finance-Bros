@@ -92,7 +92,9 @@ module slave_table_view(
     text_dynamic #(7) text_module(
         .x(xpos), .y(ypos), 
         .color(constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(ypos < 10 ? 0 : (ypos < 20 ? 10 : 20)), .string(ypos < 10 ? "USER ID" : (ypos < 20 ? "BALANCE" : "STOCK1 ")), .offset(0), //9*6), 
+        .text_y_pos(ypos < 10 ? 0 : (ypos < 20 ? 10 : 20)), 
+        .string(ypos < 10 ? "USER ID" : (ypos < 20 ? "BALANCE" : "STOCK1 ")), 
+        .offset(0), //9*6), 
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(header_pixel_data));
         
     wire [8*4-1:0] account_num;

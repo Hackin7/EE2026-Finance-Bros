@@ -64,6 +64,21 @@ module module_master #(
     parameter BITWIDTH_ACCT_STOCKS = 8;
     parameter BITWIDTH_ACCT = BITWIDTH_ACCT_BALANCE + BITWIDTH_ACCT_STOCKS*NO_STOCKS;
     wire [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] accounts;
+    
+        //constants library
+    constants constant();
+
+    reg [7:0] xpos; reg [7:0] ypos;
+
+    wire [8*(4)-1:0] num_string1, num_string2, num_string3, 
+                     num_string4, num_string5, num_string6;
+    text_num_val_mapping text_num1_module(account_get_balance(0), num_string1);
+    text_num_val_mapping text_num2_module(account_get_balance(1), num_string2);
+    text_num_val_mapping text_num3_module(account_get_balance(2), num_string3);
+    text_num_val_mapping text_num4_module(stock_get_price(0), num_string4);
+    text_num_val_mapping text_num5_module(stock_get_price(1), num_string5);
+    text_num_val_mapping text_num6_module(stock_get_price(2), num_string6);
+
 
     trade_module_master 
         #(
@@ -145,22 +160,36 @@ module module_master #(
         );
     end
     endfunction
+    //////////////////////////////////////////////////////////
+    
+    wire [8*15-1:0] line1 = {"PRICES         "}; //, num_string1};
+    wire [8*15-1:0] line2 = {"AAPL       ", num_string4};
+    wire [8*15-1:0] line3 = {"GOOG       ", num_string5};
+    wire [8*15-1:0] line4 = {"BABA       ", num_string6};
+    wire [15:0] stock_pixel_data;
+        text_dynamic #(15) text_module(
+            .x(xpos), .y(ypos), 
+            .color(constant.WHITE), .background(constant.BLACK), 
+            .text_y_pos(
+                ypos < 10 ? 0 : 
+                ypos < 20 ? 10 : 
+                ypos < 30 ? 20 : 
+                ypos < 40 ? 30 : 
+                30 
+            ), 
+            .string(
+                ypos < 10 ? line1 : 
+                ypos < 20 ? line2 : 
+                ypos < 30 ? line3 : 
+                ypos < 40 ? line4 : 
+                line4 
+            ), 
+            .offset(0), //9*6), 
+            .repeat_flag(0), .x_pos_offset(0), .pixel_data(stock_pixel_data));
+            
+    
+    
     /* --- OLED ------------------------------------------------------------- */
-
-    //constants library
-    constants constant();
-
-    reg [7:0] xpos; reg [7:0] ypos;
-
-    wire [8*(4)-1:0] num_string1, num_string2, num_string3, 
-                     num_string4, num_string5, num_string6;
-    text_num_val_mapping text_num1_module(account_get_balance(0), num_string1);
-    text_num_val_mapping text_num2_module(account_get_balance(1), num_string2);
-    text_num_val_mapping text_num3_module(account_get_balance(2), num_string3);
-    text_num_val_mapping text_num4_module(stock_get_price(0), num_string4);
-    text_num_val_mapping text_num5_module(stock_get_price(1), num_string5);
-    text_num_val_mapping text_num6_module(stock_get_price(2), num_string6);
-
 
     wire [15:0] num1_pixel_data;
     text_dynamic #(14) text_num_display_module(
@@ -170,16 +199,37 @@ module module_master #(
         .string({num_string1, " ", num_string2, " ", num_string3}), 
         .offset(0), 
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(num1_pixel_data));
-        
+     
+    //Module menu
+    /*
+    module master_menu(
+        // Control
+        input clk, input reset, 
+        // LEDs, Switches, Buttons
+        input btnC, btnU, btnL, btnR, btnD, input [15:0] sw,
+        input [12:0] pixel_index,
+        output [15:0] oled_pixel_data,
+        output [6:0] seg, output dp, output [3:0] an,
+        output reg [31:0] stock_id, 
+        output reg [31:0] price, 
+        output reg [31:0] qty, 
+        output reg done=0
+        );
+    */
+    reg master_menu_reset;
+    wire [15:0] menu_pixel_data;
+    reg [2:0] master_button_state;
+    master_menu menu(.clk(clk), .reset(master_menu_reset),
+        .pixel_index(oled_pixel_index), .oled_pixel_data(menu_pixel_data),
+        .button_state(master_button_state)
+    );
+     
+    //State machine    
     reg [3:0] state = 4'd1;
     parameter MENU_STATE = 1;
     parameter USER_TABLE_STATE = 2;
     parameter STOCK_TABLE_STATE = 3;
     parameter GRAPH_STATE = 4;
-    
-    always @ (posedge clk) begin
-        
-    end
 
     wire [15:0] num2_pixel_data;
     text_dynamic #(14) text_num2_display_module(
@@ -190,10 +240,63 @@ module module_master #(
         .offset(0), 
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(num2_pixel_data));
 
+    reg prev_btnC, prev_btnU, prev_btnR, prev_btnL, prev_btnD;
+    task button_control();
+    begin
+            /*if (prev_btnU == 1 && btnU == 0) begin
+                key_in_value <= key_in_value + 1;
+                debounce <= 1;
+            end*/
+            prev_btnC <= btnC; prev_btnU <= btnU; prev_btnL <= btnL; 
+            prev_btnR <= btnR; prev_btnD <= btnD;
+    end
+    endtask
+    
+    task state_menu_handle(); begin
+        if (prev_btnC == 1 && btnC == 0) begin
+            if (master_button_state == 0) begin
+                state <= USER_TABLE_STATE;
+            end else if (master_button_state == 1) begin
+                state <= STOCK_TABLE_STATE;
+            end else if (master_button_state == 2) begin
+                state <= GRAPH_STATE;
+            end
+            master_button_state <= 0;
+        end
+        if (prev_btnU == 1 && btnU == 0) begin
+            master_button_state <= master_button_state == 0 ? 2 : master_button_state - 1;
+        end
+        if (prev_btnD == 1 && btnD == 0) begin
+            master_button_state <= master_button_state == 2 ? 0 : master_button_state + 1;
+        end
+    end
+    endtask
+    
+    task btnC_handle(); begin
+        if (prev_btnC == 1 && btnC == 0) begin
+            state <= MENU_STATE;
+        end
+    end endtask
+    
+    always @ (posedge clk) begin
+        case (state)
+        MENU_STATE: state_menu_handle();
+        USER_TABLE_STATE: btnC_handle();
+        STOCK_TABLE_STATE: btnC_handle();
+        GRAPH_STATE: btnC_handle();
+        endcase
+        button_control();
+    end
+    
     always @ (*) begin
         xpos = oled_pixel_index % 96;
         ypos = oled_pixel_index / 96;
-        oled_pixel_data <= num1_pixel_data | num2_pixel_data;
+        case (state)
+        MENU_STATE: oled_pixel_data <= menu_pixel_data;
+        USER_TABLE_STATE: oled_pixel_data <= num1_pixel_data | num2_pixel_data;
+        STOCK_TABLE_STATE: oled_pixel_data <= stock_pixel_data;
+        GRAPH_STATE: oled_pixel_data <= constant.YELLOW;
+        endcase
     end
 endmodule
 

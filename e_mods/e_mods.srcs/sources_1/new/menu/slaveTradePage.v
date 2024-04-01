@@ -177,33 +177,33 @@ module slaveTradePage(
         .color(constant.CYAN), .background(constant.BLACK), 
         .text_y_pos(10), .string(num_string), .offset(0), 
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(num_string_pixel_data));
-    
-    wire [15:0] select_pixel_data;
-    text_dynamic #(6) select_module(
-        .x(xpos), .y(ypos), 
-        .color(constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(0), .string("ACTION"), .offset(0), //12*6), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(select_pixel_data));    
         
-    wire [15:0] buy_pixel_data;
-    text_dynamic #(3) buy_module(
-        .x(xpos), .y(ypos), 
-        .color(buy_sell_state == 0 ? constant.RED : constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(10), .string("BUY"), .offset(0), //12*6), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(buy_pixel_data));
-                
-    wire [15:0] sell_pixel_data;
-    text_dynamic #(4) sell_module(
-        .x(xpos), .y(ypos), 
-        .color(buy_sell_state == 1 ? constant.RED : constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(10), .string("SELL"), .offset(0), //12*6), 
-        .repeat_flag(0), .x_pos_offset(20), .pixel_data(sell_pixel_data));
-
+        wire [15:0] select_pixel_data;
+        text_dynamic #(6) select_module(
+            .x(xpos), .y(ypos), 
+            .color(constant.WHITE), .background(constant.BLACK), 
+            .text_y_pos(0), .string("ACTION"), .offset(0), //12*6), 
+            .repeat_flag(0), .x_pos_offset(0), .pixel_data(select_pixel_data));    
+            
+        wire [15:0] buy_pixel_data;
+        text_dynamic #(3) buy_module(
+            .x(xpos), .y(ypos), 
+            .color(buy_sell_state == 0 ? constant.RED : constant.WHITE), .background(constant.BLACK), 
+            .text_y_pos(10), .string("BUY"), .offset(0), //12*6), 
+            .repeat_flag(0), .x_pos_offset(0), .pixel_data(buy_pixel_data));
+                    
+        wire [15:0] sell_pixel_data;
+        text_dynamic #(4) sell_module(
+            .x(xpos), .y(ypos), 
+            .color(buy_sell_state == 1 ? constant.RED : constant.WHITE), .background(constant.BLACK), 
+            .text_y_pos(10), .string("SELL"), .offset(0), //12*6), 
+            .repeat_flag(0), .x_pos_offset(20), .pixel_data(sell_pixel_data));
+            
     always @ (*) begin
         xpos = pixel_index % 96;
         ypos = pixel_index / 96;
-        pixel_data <= pageNo < 3 ? (setter_pixel_data | num_string_pixel_data) : 
-                (select_pixel_data | buy_pixel_data | sell_pixel_data) ;
+        pixel_data <= pageNo < 3 ? (setter_pixel_data | num_string_pixel_data) :
+        (select_pixel_data | buy_pixel_data | sell_pixel_data);
         /* --------------------------------------------------------------------------*/
     end
     
