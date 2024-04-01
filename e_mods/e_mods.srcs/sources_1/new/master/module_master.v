@@ -70,15 +70,6 @@ module module_master #(
 
     reg [7:0] xpos; reg [7:0] ypos;
 
-    wire [8*(4)-1:0] num_string1, num_string2, num_string3, 
-                     num_string4, num_string5, num_string6;
-    text_num_val_mapping text_num1_module(account_get_balance(0), num_string1);
-    text_num_val_mapping text_num2_module(account_get_balance(1), num_string2);
-    text_num_val_mapping text_num3_module(account_get_balance(2), num_string3);
-    text_num_val_mapping text_num4_module(stock_get_price(0), num_string4);
-    text_num_val_mapping text_num5_module(stock_get_price(1), num_string5);
-    text_num_val_mapping text_num6_module(stock_get_price(2), num_string6);
-
 
     trade_module_master 
         #(
@@ -161,31 +152,93 @@ module module_master #(
     end
     endfunction
     //////////////////////////////////////////////////////////
+    //State machine    
+    reg [3:0] state = 4'd1;
+    parameter MENU_STATE = 1;
+    parameter USER_TABLE_STATE = 2;
+    parameter STOCK_TABLE_STATE = 3;
+    parameter GRAPH_STATE = 4;
+
+    reg [2:0] user_id = 0;
+    wire [8*(4)-1:0] num_string1, num_string2, num_string3, num_string4;
+    text_num_val_mapping text_num1_module(
+        state == USER_TABLE_STATE  ? (
+            ypos < 10 ? user_id
+            : account_get_balance(user_id)
+        ):
+        state == STOCK_TABLE_STATE ? stock_get_price(0) : 0, 
+        num_string1
+    );
     
-    wire [8*15-1:0] line1 = {"PRICES         "}; //, num_string1};
-    wire [8*15-1:0] line2 = {"AAPL       ", num_string4};
-    wire [8*15-1:0] line3 = {"GOOG       ", num_string5};
-    wire [8*15-1:0] line4 = {"BABA       ", num_string6};
+    text_num_val_mapping text_num2_module(
+        state == USER_TABLE_STATE  ? account_get_stock(user_id, 0):
+        state == STOCK_TABLE_STATE ? stock_get_price(1) : 0, 
+        num_string2
+    );
+    
+    text_num_val_mapping text_num3_module(
+        state == USER_TABLE_STATE  ? account_get_stock(user_id, 1):
+        state == STOCK_TABLE_STATE ? stock_get_price(2) : 0, 
+        num_string3
+    );
+    
+    text_num_val_mapping text_num4_module(
+        state == USER_TABLE_STATE  ? account_get_stock(user_id, 2):
+        state == STOCK_TABLE_STATE ? 0 : 0, 
+        num_string4
+    );
+
+    wire [8*15-1:0] line1 = (
+        state == USER_TABLE_STATE  ? {"USER       ", num_string1} :
+        state == STOCK_TABLE_STATE ? "PRICES         " : 
+        ""
+    );
+    wire [8*15-1:0] line2 = {
+        state == USER_TABLE_STATE  ? "BALANCE    ": 
+        state == STOCK_TABLE_STATE ? "AAPL       ": 
+        "               ", 
+        num_string1
+    };
+    
+    wire [8*15-1:0] line3 = {
+        state == USER_TABLE_STATE  ? "AAPL QTY   ": 
+        state == STOCK_TABLE_STATE ? "GOOG       ": 
+        "               ", 
+        num_string2
+    };
+    
+    wire [8*15-1:0] line4 = {
+        state == USER_TABLE_STATE  ? "GOOG QTY   ": 
+        state == STOCK_TABLE_STATE ? "BABA       ": 
+        "               ", 
+        num_string3
+    };
+    wire [8*15-1:0] line5 = {
+        state == USER_TABLE_STATE  ? {"BABA QTY   ", num_string4}: 
+        state == STOCK_TABLE_STATE ? "       ": 
+        "               "
+    };
+
     wire [15:0] stock_pixel_data;
-        text_dynamic #(15) text_module(
-            .x(xpos), .y(ypos), 
-            .color(constant.WHITE), .background(constant.BLACK), 
-            .text_y_pos(
-                ypos < 10 ? 0 : 
-                ypos < 20 ? 10 : 
-                ypos < 30 ? 20 : 
-                ypos < 40 ? 30 : 
-                30 
-            ), 
-            .string(
-                ypos < 10 ? line1 : 
-                ypos < 20 ? line2 : 
-                ypos < 30 ? line3 : 
-                ypos < 40 ? line4 : 
-                line4 
-            ), 
-            .offset(0), //9*6), 
-            .repeat_flag(0), .x_pos_offset(0), .pixel_data(stock_pixel_data));
+	text_dynamic #(15) text_module(
+		.x(xpos), .y(ypos), 
+		.color(xpos > 49 ? constant.CYAN : constant.WHITE), .background(constant.BLACK), 
+		.text_y_pos(
+			ypos < 10 ? 0 : 
+			ypos < 20 ? 10 : 
+			ypos < 30 ? 20 : 
+			ypos < 40 ? 30 : 
+			40 
+		), 
+		.string(
+			ypos < 10 ? line1 : 
+			ypos < 20 ? line2 : 
+			ypos < 30 ? line3 : 
+			ypos < 40 ? line4 : 
+			line5 
+		), 
+		.offset(0), //9*6), 
+		.repeat_flag(0), .x_pos_offset(0), .pixel_data(stock_pixel_data));
             
     
     
@@ -224,13 +277,6 @@ module module_master #(
         .button_state(master_button_state)
     );
      
-    //State machine    
-    reg [3:0] state = 4'd1;
-    parameter MENU_STATE = 1;
-    parameter USER_TABLE_STATE = 2;
-    parameter STOCK_TABLE_STATE = 3;
-    parameter GRAPH_STATE = 4;
-
     wire [15:0] num2_pixel_data;
     text_dynamic #(14) text_num2_display_module(
         .x(xpos), .y(ypos), 
@@ -276,6 +322,12 @@ module module_master #(
         if (prev_btnC == 1 && btnC == 0) begin
             state <= MENU_STATE;
         end
+        if (prev_btnL == 1 && btnL == 0) begin
+            user_id <= user_id == 0 ? 2 : user_id - 1;
+        end
+        if (prev_btnR == 1 && btnR == 0) begin
+            user_id <= user_id == 2 ? 0 : user_id + 1;
+        end
     end endtask
     
     always @ (posedge clk) begin
@@ -293,7 +345,7 @@ module module_master #(
         ypos = oled_pixel_index / 96;
         case (state)
         MENU_STATE: oled_pixel_data <= menu_pixel_data;
-        USER_TABLE_STATE: oled_pixel_data <= num1_pixel_data | num2_pixel_data;
+        USER_TABLE_STATE: oled_pixel_data <= stock_pixel_data;
         STOCK_TABLE_STATE: oled_pixel_data <= stock_pixel_data;
         GRAPH_STATE: oled_pixel_data <= constant.YELLOW;
         endcase
