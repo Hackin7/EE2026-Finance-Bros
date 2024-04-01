@@ -162,7 +162,7 @@ module top (
         .mouse_xpos(mouse_xpos), .mouse_ypos(mouse_ypos), .mouse_zpos(mouse_zpos),
         .mouse_left_click(mouse_left_click), .mouse_middle_click(mouse_middle_click),
         .mouse_right_click(mouse_right_click), .mouse_new_event(mouse_new_event)
-    );*/
+    );
 
     //// Slave //////////////////////////////////////////////////////////////////////////////////////////////////
     wire slave_reset=0;
