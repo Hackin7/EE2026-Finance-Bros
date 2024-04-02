@@ -50,78 +50,47 @@ module slave_table_view(
     
     reg [7:0] xpos, ypos;
     
-    /*
     wire [15:0] user_pixel_data;
     text_dynamic #(12) text_module(
         .x(xpos), .y(ypos), 
-        .color(constant.WHITE), .background(constant.BLACK), 
+        .color(xpos > 46 ? constant.CYAN : constant.WHITE), .background(constant.BLACK), 
         .text_y_pos(0), .string({"USER ID", ":", num_string1}), .offset(0), //9*6), 
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(user_pixel_data));
     
     wire [15:0] balance_pixel_data;
     text_dynamic #(12) text_module2(
         .x(xpos), .y(ypos), 
-        .color(constant.WHITE), .background(constant.BLACK), 
+        .color(xpos > 46 ? constant.CYAN : constant.WHITE), .background(constant.BLACK), 
         .text_y_pos(10), .string({"BALANCE", ":", num_string2}), .offset(0), //9*6), 
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(balance_pixel_data));
     
     wire [15:0] stock_pixel_data;
     text_dynamic #(12) text_module3(
         .x(xpos), .y(ypos), 
-        .color(constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(20), .string({"STOCK1 ", ":", num_string3}), .offset(0), //9*6), 
+        .color(xpos > 46 ? constant.CYAN : constant.WHITE), .background(constant.BLACK), 
+        .text_y_pos(20), .string({"AAPL   ", ":", num_string3}), .offset(0), //9*6), 
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(stock_pixel_data));
     
     wire [15:0] stock2_pixel_data;
     text_dynamic #(12) text_module4(
         .x(xpos), .y(ypos), 
-        .color(constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(30), .string({"STOCK2 ", ":", num_string4}), .offset(0), //9*6), 
+        .color(xpos > 46 ? constant.CYAN : constant.WHITE), .background(constant.BLACK), 
+        .text_y_pos(30), .string({"GOOG   ", ":", num_string4}), .offset(0), //9*6), 
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(stock2_pixel_data));
     
     
     wire [15:0] stock3_pixel_data;
     text_dynamic #(12) text_module5(
         .x(xpos), .y(ypos), 
-        .color(constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(40), .string({"STOCK3 ", ":", num_string5}), .offset(0), //9*6), 
+        .color(xpos > 46 ? constant.CYAN : constant.WHITE), .background(constant.BLACK), 
+        .text_y_pos(40), .string({"BABA   ", ":", num_string5}), .offset(0), //9*6), 
         .repeat_flag(0), .x_pos_offset(0), .pixel_data(stock3_pixel_data));
-    */
-
-    wire [15:0] header_pixel_data;
-    text_dynamic #(7) text_module(
-        .x(xpos), .y(ypos), 
-        .color(constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(ypos < 10 ? 0 : (ypos < 20 ? 10 : 20)), 
-        .string(ypos < 10 ? "USER ID" : (ypos < 20 ? "BALANCE" : "STOCK1 ")), 
-        .offset(0), //9*6), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(header_pixel_data));
-        
-    wire [8*4-1:0] account_num;
-    wire [15:0] account_num_pixel_data;
-    text_num_val_mapping account_num_module(account_id, account_num);
-    text_dynamic #(4) account_num_display_module(
-        .x(xpos), .y(ypos), 
-        .color(constant.CYAN), .background(constant.BLACK), 
-        .text_y_pos(0), .string(account_num), .offset(0), 
-        .repeat_flag(0), .x_pos_offset(50), .pixel_data(account_num_pixel_data));
-    
-    wire [8*4-1:0] balance_num;
-    wire [15:0] balance_num_pixel_data;
-    text_num_val_mapping balance_num_module(balance, balance_num);
-    text_dynamic #(4) text_num_display_module(
-        .x(xpos), .y(ypos), 
-        .color(constant.CYAN), .background(constant.BLACK), 
-        .text_y_pos(10), .string(balance_num), .offset(0), 
-        .repeat_flag(0), .x_pos_offset(50), .pixel_data(balance_num_pixel_data));
         
     always @ (*) begin
         xpos = pixel_index % 96;
         ypos = pixel_index / 96;
         
-        //pixel_data <= user_pixel_data | balance_pixel_data | stock_pixel_data | stock2_pixel_data | stock3_pixel_data;
-        pixel_data <= header_pixel_data | account_num_pixel_data |
-                    balance_num_pixel_data;
+        pixel_data <= user_pixel_data | balance_pixel_data | stock_pixel_data | stock2_pixel_data | stock3_pixel_data;
     end
     
 endmodule
