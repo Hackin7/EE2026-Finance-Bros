@@ -44,4 +44,5 @@ module constants();
     parameter LIGHT_GRAY = 16'b10101_101010_10101;
     parameter DARK_GRAY = 16'b00101_001010_00101;
     parameter BLACK = 16'd0;
+
 endmodule

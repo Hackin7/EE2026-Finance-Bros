@@ -46,6 +46,7 @@ module top (
         .cs(Jx[0]), .sdin(Jx[1]), .sclk(Jx[3]), .d_cn(Jx[4]), .resn(Jx[5]), .vccen(Jx[6]), .pmoden(Jx[7])); //to SPI
     
     //// 3.B Mouse Setup /////////////////////////////////////
+    /*
     wire mouse_reset; // cannot hardcode to 1 for some reason
     wire [11:0] mouse_xpos;
     wire [11:0] mouse_ypos;
@@ -59,7 +60,7 @@ module top (
         .xpos(mouse_xpos), .ypos(mouse_ypos), .zpos(mouse_zpos), 
         .left(mouse_left_click), .middle(mouse_middle_click), .right(mouse_right_click), .new_event(mouse_new_event),
         .ps2_clk(mouse_ps2_clk), .ps2_data(mouse_ps2_data)
-    );
+    );*/
     //// UART //////////////////////////////////////////////
     //// UART //////////////////////////////////////////////
     wire rx; assign rx = sw[15] ? rxUSB : rx0; // Receive data to board - send from PC/ master
@@ -158,10 +159,11 @@ module top (
         .uart2_tx_trigger(uart2_tx_trigger),
         .uart2_rx_clear(uart2_rx_clear),
         // OLED
-        .oled_pixel_index(oled_pixel_index), .oled_pixel_data(master_oled_pixel_data),
+        .oled_pixel_index(oled_pixel_index), .oled_pixel_data(master_oled_pixel_data) //,
+        /*
         .mouse_xpos(mouse_xpos), .mouse_ypos(mouse_ypos), .mouse_zpos(mouse_zpos),
         .mouse_left_click(mouse_left_click), .mouse_middle_click(mouse_middle_click),
-        .mouse_right_click(mouse_right_click), .mouse_new_event(mouse_new_event)
+        .mouse_right_click(mouse_right_click), .mouse_new_event(mouse_new_event)*/
     );
 
     //// Slave //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -176,7 +178,7 @@ module top (
     wire [15:0] slave_oled_pixel_data;
 
     menuCode slave_menu(
-        .clk(clk), .reset(slave_reset) , .sw(sw),.led(slave_led),
+        .clk(clk_6_25mhz), .reset(slave_reset) , .sw(sw),.led(slave_led),
         .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
         .oled_pixel_index(oled_pixel_index), .oled_pixel_data(slave_oled_pixel_data),
         .seg(slave_seg), .dp(slave_dp), .an(slave_an), 
@@ -187,16 +189,6 @@ module top (
         .uart_rx_clear(slave_uart_rx_clear)
     );
         
-    /*adaptor_task_a task_a(
-        .reset(a_reset), .clk(clk),
-        .btnC(btnC), .btnU(btnU), .btnL(btnL), .btnR(btnR), .btnD(btnD), .sw(sw), .led(a_led), 
-        .seg(a_seg), .dp(a_dp), .an(a_an),
-        .oled_pixel_index(oled_pixel_index), .oled_pixel_data(a_oled_pixel_data),
-        .mouse_xpos(mouse_xpos), .mouse_ypos(mouse_ypos), .mouse_zpos(mouse_zpos),
-        .mouse_left_click(mouse_left_click), .mouse_middle_click(mouse_middle_click),
-        .mouse_right_click(mouse_right_click), .mouse_new_event(mouse_new_event)
-    );*/
-
     //// Overall Control Logic ////////////////////////////////////////////////////////////////////////////////////
     // 4.E1
     wire enable_mode_master = sw[0];

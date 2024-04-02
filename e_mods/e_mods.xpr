@@ -3,7 +3,7 @@
 <!--                                                         -->
 <!-- Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.   -->
 
-<Project Version="7" Minor="38" Path="C:/Users/zunmun/Documents/Stuff/Github/WORK/EE2026-Finance-Bros/e_mods/e_mods.xpr">
+<Project Version="7" Minor="38" Path="C:/Users/TL/Desktop/New folder/EE2026/EE2026-Finance-Bros/e_mods/e_mods.xpr">
   <DefaultLaunch Dir="$PRUNDIR"/>
   <Configuration>
     <Option Name="Id" Val="40dec8e249af4baf9c9fbea389e261ee"/>
@@ -385,6 +385,13 @@
         </FileInfo>
       </File>
       <File Path="$PSRCDIR/sources_1/new/menu/set_id.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/new/encryption.v">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
