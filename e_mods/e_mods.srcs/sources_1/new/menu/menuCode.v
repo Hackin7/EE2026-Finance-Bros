@@ -196,11 +196,11 @@ module menuCode#(
     task button_control();
     begin
         if (debounce) begin
-            if (debounce_timer == DEBOUNCE_TIME-1) begin
+            debounce_timer <= debounce_timer + 1;
+            if (debounce_timer > DEBOUNCE_TIME-1) begin
                 debounce <= 0;
                 debounce_timer <= 0;
             end
-            debounce <= debounce + 1;
         end else begin
             /*if (prev_btnU == 1 && btnU == 0) begin
                 key_in_value <= key_in_value + 1;
