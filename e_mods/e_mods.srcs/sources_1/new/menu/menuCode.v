@@ -27,6 +27,10 @@ module menuCode#(
         input btnC, btnU, btnR, btnL, btnD,
         input [15:0] sw, output [15:0] led, 
         input [12:0] oled_pixel_index, output [15:0] oled_pixel_data,
+        // OLED Text Module
+        output [12:0]       text_colour, 
+        output [8*15*5-1:0] text_lines,
+        // 7 seg
         output [6:0] seg, output dp, output [3:0] an,
         
         // UART
@@ -72,17 +76,18 @@ module menuCode#(
     );
     
     //menu page
-    wire [15:0] menu_page_pixel_data;
-    reg menu_page_reset;
-    wire [6:0] menu_seg;
-    wire menu_dp;
-    wire [3:0] menu_an;
     reg [3:0] menu_button_state;
+    wire [12:0] menu_text_colour;
+    wire [8*15*5-1:0] menu_text_lines;
     slaveMenuPage menuPage(
-        .clk(clk), .reset(menu_page_reset), .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
-        .sw(sw), .pixel_index(oled_pixel_index), .oled_pixel_data(menu_page_pixel_data),
-        .seg(menu_seg), .dp(menu_dp), .an(menu_an), .menu_button_state(menu_button_state)
+        //.clk(clk), .reset(menu_page_reset), .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
+        //.pixel_index(oled_pixel_index), .oled_pixel_data(menu_page_pixel_data),
+        .ypos(ypos), .text_colour(menu_text_colour), .text_lines(menu_text_lines),
+        .menu_button_state(menu_button_state)
     );
+
+    assign text_colour = state == STATE_MENU ? menu_text_colour : 0;
+    assign text_lines  = state == STATE_MENU ? menu_text_lines  : 0;
 
     //input id page
     reg set_id_reset;
@@ -164,11 +169,6 @@ module menuCode#(
         .num1(trade_slave_account_id), .num2(table_balance), .num3(table_stock1), .num4(table_stock2), .num5(table_stock3), .num6(0)
     );
     wire [15:0] table_view_pixel_data = table_view_ready_pixel_data | (self_status_state != 3 ? table_view_loading_pixel_data : 0);
-/*
-        .pixel_index(oled_pixel_index), .oled_pixel_data(table_view_pixel_data),
-        .balance(trade_slave_balance), .account_id(account_id)
-    );
-*/
     
     wire [55:0] packet;
     assign packet = {8'h5B, trade_slave_type, trade_slave_account_id, trade_slave_stock_id, trade_slave_qty, trade_slave_price, 8'h5D}; //current trade page
@@ -382,10 +382,10 @@ module menuCode#(
             control_an <= input_id_an;
             control_dp <= input_id_dp;
         end else if (state == STATE_MENU) begin
-            pixel_data <= menu_page_pixel_data;
-            control_seg <= menu_seg;
-            control_dp <= menu_dp;
-            control_an <= menu_an;
+            pixel_data <= 0;
+            control_seg <= 0;
+            control_dp <= 0;
+            control_an <= 0;
         end else if (state == STATE_ADD_TRADE) begin
             pixel_data <= pageOne_pixel_data;
             control_seg <= pageOne_seg;

@@ -25,41 +25,26 @@ module master_menu(
     input clk, input reset, 
     // LEDs, Switches, Buttons
     input [2:0] button_state,
-    input [12:0] pixel_index,
-    output [15:0] oled_pixel_data
+    input [7:0] ypos, 
+    // OLED Text Module
+    output [12:0]     text_colour, 
+    output [8*15*5-1:0] text_lines
     );
     
-    reg [7:0] xpos, ypos;
-    reg [15:0] pixel_data;
-    assign oled_pixel_data = pixel_data;
     constants constant();
-    
-    wire [15:0] all_user_pixel_data;
-    text_dynamic #(14) all_user_module(
-            .x(xpos), .y(ypos), 
-            .color(button_state == 0 ? constant.CYAN : constant.WHITE), .background(constant.BLACK), 
-            .text_y_pos(0), .string("VIEW ALL USERS"), .offset(0), //12*6), 
-            .repeat_flag(0), .x_pos_offset(0), .pixel_data(all_user_pixel_data));
-            
-    wire [15:0] all_stock_pixel_data;
-    text_dynamic #(15) all_stock_module(
-        .x(xpos), .y(ypos), 
-        .color(button_state == 1 ? constant.CYAN : constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(10), .string("VIEW ALL STOCKS"), .offset(0), //12*6), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(all_stock_pixel_data));
 
-    wire [15:0] all_graph_pixel_data;
-    text_dynamic #(15) all_graph_module(
-        .x(xpos), .y(ypos), 
-        .color(button_state == 2 ? constant.CYAN : constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(20), .string("VIEW ALL GRAPHS"), .offset(0), //12*6), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(all_graph_pixel_data));
-            
-    always @ (*) begin
-        xpos <= pixel_index % 96;
-        ypos <= pixel_index / 96;
-        
-        pixel_data <= all_user_pixel_data | all_stock_pixel_data | all_graph_pixel_data;
-    end
+    assign text_colour = (
+        button_state == 0 && (ypos < 10) ? constant.CYAN : 
+        button_state == 1 && (10 < ypos && ypos < 20) ? constant.CYAN : 
+        button_state == 2 && (20 < ypos && ypos < 30) ? constant.CYAN : 
+        constant.WHITE
+    );
+    assign text_lines = {
+        "VIEW ALL USERS ",
+        "VIEW ALL STOCKS",
+        "VIEW ALL GRAPHS",
+        "               ", 
+        "               "
+    };
     
 endmodule

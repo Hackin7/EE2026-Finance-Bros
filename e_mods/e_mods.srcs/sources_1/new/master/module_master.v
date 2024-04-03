@@ -21,7 +21,8 @@
 
 
 module module_master #(
-    parameter DBITS=8, UART_FRAME_SIZE=8
+    parameter DBITS=8, UART_FRAME_SIZE=8, 
+    STR_LEN=15
 )(
     // Control
     input reset, input clk,
@@ -46,6 +47,9 @@ module module_master #(
     output uart2_rx_clear,
     // OLED
     input [12:0] oled_pixel_index, output reg [15:0] oled_pixel_data,
+    // OLED Text Module
+    input [8*STR_LEN*5-1:0] text_lines, input [12:0] text_colour,
+    
     // Mouse - NOT NEEDED
     input [11:0] mouse_xpos,  mouse_ypos, input [3:0] mouse_zpos,
     input mouse_left_click, mouse_middle_click, mouse_right_click, mouse_new_event
@@ -65,7 +69,7 @@ module module_master #(
     parameter BITWIDTH_ACCT = BITWIDTH_ACCT_BALANCE + BITWIDTH_ACCT_STOCKS*NO_STOCKS;
     wire [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] accounts;
     
-        //constants library
+    //constants library
     constants constant();
 
     reg [7:0] xpos; reg [7:0] ypos;
@@ -193,87 +197,45 @@ module module_master #(
         state == STOCK_TABLE_STATE ? "PRICES         " : 
         ""
     );
-    wire [8*15-1:0] line2 = {
-        state == USER_TABLE_STATE  ? "BALANCE    ": 
-        state == STOCK_TABLE_STATE ? "AAPL       ": 
-        "               ", 
-        num_string1
-    };
+    wire [8*15-1:0] line2 = (
+        state == USER_TABLE_STATE  ? {"BALANCE    ", num_string1}: 
+        state == STOCK_TABLE_STATE ? {"AAPL       ", num_string1}: 
+        "               "
+    );
     
-    wire [8*15-1:0] line3 = {
-        state == USER_TABLE_STATE  ? "AAPL QTY   ": 
-        state == STOCK_TABLE_STATE ? "GOOG       ": 
-        "               ", 
-        num_string2
-    };
+    wire [8*15-1:0] line3 = (
+        state == USER_TABLE_STATE  ? {"AAPL QTY   ", num_string2} : 
+        state == STOCK_TABLE_STATE ? {"GOOG       ", num_string2} : 
+        "               "
+    );
     
-    wire [8*15-1:0] line4 = {
-        state == USER_TABLE_STATE  ? "GOOG QTY   ": 
-        state == STOCK_TABLE_STATE ? "BABA       ": 
-        "               ", 
-        num_string3
-    };
+    wire [8*15-1:0] line4 = (
+        state == USER_TABLE_STATE  ? {"GOOG QTY   ", num_string3}: 
+        state == STOCK_TABLE_STATE ? {"BABA       ", num_string3}: 
+        "               "
+    );
     wire [8*15-1:0] line5 = {
         state == USER_TABLE_STATE  ? {"BABA QTY   ", num_string4}: 
         state == STOCK_TABLE_STATE ? "       ": 
         "               "
     };
 
-    wire [15:0] stock_pixel_data;
-	text_dynamic #(15) text_module(
-		.x(xpos), .y(ypos), 
-		.color(xpos > 49 ? constant.CYAN : constant.WHITE), .background(constant.BLACK), 
-		.text_y_pos(
-			ypos < 10 ? 0 : 
-			ypos < 20 ? 10 : 
-			ypos < 30 ? 20 : 
-			ypos < 40 ? 30 : 
-			40 
-		), 
-		.string(
-			ypos < 10 ? line1 : 
-			ypos < 20 ? line2 : 
-			ypos < 30 ? line3 : 
-			ypos < 40 ? line4 : 
-			line5 
-		), 
-		.offset(0), //9*6), 
-		.repeat_flag(0), .x_pos_offset(0), .pixel_data(stock_pixel_data));
+    assign text_lines = state == MENU_STATE ? menu_text_lines : {line1, line2, line3, line4, line5};
+    assign text_colour = state == MENU_STATE ? menu_text_colour : (xpos > 49 ? constant.CYAN : constant.WHITE);
             
     
     
     /* --- OLED ------------------------------------------------------------- */
-
-    wire [15:0] num1_pixel_data;
-    text_dynamic #(14) text_num_display_module(
-        .x(xpos), .y(ypos), 
-        .color(constant.CYAN), .background(constant.BLACK), 
-        .text_y_pos(10), 
-        .string({num_string1, " ", num_string2, " ", num_string3}), 
-        .offset(0), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(num1_pixel_data));
-     
-    //Module menu
-    /*
-    module master_menu(
-        // Control
-        input clk, input reset, 
-        // LEDs, Switches, Buttons
-        input btnC, btnU, btnL, btnR, btnD, input [15:0] sw,
-        input [12:0] pixel_index,
-        output [15:0] oled_pixel_data,
-        output [6:0] seg, output dp, output [3:0] an,
-        output reg [31:0] stock_id, 
-        output reg [31:0] price, 
-        output reg [31:0] qty, 
-        output reg done=0
-        );
-    */
     reg master_menu_reset;
-    wire [15:0] menu_pixel_data;
     reg [2:0] master_button_state;
-    master_menu menu(.clk(clk), .reset(master_menu_reset),
-        .pixel_index(oled_pixel_index), .oled_pixel_data(menu_pixel_data),
+    
+    wire [12:0]     menu_text_colour;
+    wire [8*15*5-1:0] menu_text_lines;
+
+    master_menu menu(
+        .clk(clk), .reset(master_menu_reset),
+        .ypos(ypos), 
+        .text_colour(menu_text_colour), .text_lines(menu_text_lines),
         .button_state(master_button_state)
     );
      
@@ -344,9 +306,9 @@ module module_master #(
         xpos = oled_pixel_index % 96;
         ypos = oled_pixel_index / 96;
         case (state)
-        MENU_STATE: oled_pixel_data <= menu_pixel_data;
-        USER_TABLE_STATE: oled_pixel_data <= stock_pixel_data;
-        STOCK_TABLE_STATE: oled_pixel_data <= stock_pixel_data;
+        MENU_STATE: oled_pixel_data <= 0;
+        USER_TABLE_STATE: oled_pixel_data <= 0;
+        STOCK_TABLE_STATE: oled_pixel_data <= 0;
         GRAPH_STATE: oled_pixel_data <= constant.YELLOW;
         endcase
     end

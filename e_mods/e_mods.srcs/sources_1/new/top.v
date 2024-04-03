@@ -45,6 +45,26 @@ module top (
         .frame_begin(), .sending_pixels(), .sample_pixel(), .pixel_index(oled_pixel_index), .pixel_data(oled_pixel_data), 
         .cs(Jx[0]), .sdin(Jx[1]), .sclk(Jx[3]), .d_cn(Jx[4]), .resn(Jx[5]), .vccen(Jx[6]), .pmoden(Jx[7])); //to SPI
     
+    //// 3.A OLED Text Module //////////////////////////////////////
+    parameter STR_LEN = 15;
+    wire [7:0] oled_xpos = oled_pixel_index % 96;
+    wire [7:0] oled_ypos = oled_pixel_index / 96;
+    wire [15:0] text_pixel_data;
+    
+    wire [8*STR_LEN*5-1:0] text_lines;
+    wire [12:0] text_colour;
+    
+    text_dynamic_multiline #(STR_LEN) text_display_module(
+        .xpos(oled_xpos), .ypos(oled_ypos), 
+        .colour(text_colour), 
+        .line1(text_lines[8*STR_LEN*5-1:8*STR_LEN*4]), 
+        .line2(text_lines[8*STR_LEN*4-1:8*STR_LEN*3]), 
+        .line3(text_lines[8*STR_LEN*3-1:8*STR_LEN*2]), 
+        .line4(text_lines[8*STR_LEN*2-1:8*STR_LEN*1]), 
+        .line5(text_lines[8*STR_LEN*1-1:8*STR_LEN*0]), 
+        .oled_pixel_data(text_pixel_data) 
+    );
+
     //// 3.B Mouse Setup /////////////////////////////////////
     /*
     wire mouse_reset; // cannot hardcode to 1 for some reason
@@ -132,7 +152,7 @@ module top (
             .tx_trigger(uart2_tx_trigger),
             .tx_in(uart2_tx)
         );
-    //// Group Task //////////////////////////////////////////////////////////////////////////////////////////////////
+    //// Master Module //////////////////////////////////////////////////////////////////////////////////////////////////
     wire master_reset;
     wire [15:0] master_led; 
     wire [6:0] master_seg;
@@ -141,6 +161,10 @@ module top (
     wire master_uart_tx_trigger;
     wire master_uart_rx_clear;
     wire [15:0] master_oled_pixel_data;
+
+    wire [8*STR_LEN*5-1:0] master_text_lines;
+    wire [12:0] master_text_colour;
+    //assign text_colour = master_text_colour;
 
     module_master master_module(
         .reset(master_reset), .clk(clk),
@@ -159,7 +183,9 @@ module top (
         .uart2_tx_trigger(uart2_tx_trigger),
         .uart2_rx_clear(uart2_rx_clear),
         // OLED
-        .oled_pixel_index(oled_pixel_index), .oled_pixel_data(master_oled_pixel_data) //,
+        .oled_pixel_index(oled_pixel_index), .oled_pixel_data(master_oled_pixel_data),
+        // OLED Text
+        .text_lines(master_text_lines), .text_colour(master_text_colour)
         /*
         .mouse_xpos(mouse_xpos), .mouse_ypos(mouse_ypos), .mouse_zpos(mouse_zpos),
         .mouse_left_click(mouse_left_click), .mouse_middle_click(mouse_middle_click),
@@ -177,10 +203,17 @@ module top (
     wire slave_uart_tx;
     wire [15:0] slave_oled_pixel_data;
 
+    wire [8*STR_LEN*5-1:0] slave_text_lines;
+    wire [12:0] slave_text_colour;
+    //assign text_colour = slave_text_colour;
+
     menuCode slave_menu(
-        .clk(clk_6_25mhz), .reset(slave_reset) , .sw(sw),.led(slave_led),
+        .clk(clk), .reset(slave_reset) , .sw(sw),.led(slave_led),
         .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
         .oled_pixel_index(oled_pixel_index), .oled_pixel_data(slave_oled_pixel_data),
+        // OLED Text
+        .text_lines(slave_text_lines), .text_colour(slave_text_colour), 
+
         .seg(slave_seg), .dp(slave_dp), .an(slave_an), 
         
         .uart_rx(uart_rx),
@@ -200,6 +233,7 @@ module top (
     assign an = enable_mode_master ? master_an : (enable_mode_slave ? slave_an :  4'b1111);
     assign uart_tx_trigger = enable_mode_master ? master_uart_tx_trigger : (enable_mode_slave ? slave_uart_tx_trigger :  1'b0);
     assign uart_rx_clear = enable_mode_master ? master_uart_rx_clear : (enable_mode_slave ? slave_uart_rx_clear :  1'b0);
-    assign oled_pixel_data = enable_mode_master ? master_oled_pixel_data : (enable_mode_slave ? slave_oled_pixel_data : 16'hFFFF);
-
+    assign oled_pixel_data = (enable_mode_master ? master_oled_pixel_data : (enable_mode_slave ? slave_oled_pixel_data : 16'hFFFF)) | text_pixel_data;
+    assign text_lines = (enable_mode_master ? master_text_lines : (enable_mode_slave ? slave_text_lines : 0));
+    assign text_colour = (enable_mode_master ? master_text_colour : (enable_mode_slave ? slave_text_colour : 0));
 endmodule
