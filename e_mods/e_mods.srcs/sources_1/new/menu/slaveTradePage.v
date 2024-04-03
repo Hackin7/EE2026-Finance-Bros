@@ -46,7 +46,7 @@ module slaveTradePage(
 
     reg debounce = 0;
     reg [31:0] debounce_timer = 0;
-    parameter DEBOUNCE_TIME = 50_000_000; // 100ms
+    parameter DEBOUNCE_TIME = 30_000_000; // 100ms
 
     /* State Machine Code ------------------------------------------------------------------*/
     reg [3:0] pageNo = 4'd0;
@@ -79,11 +79,11 @@ module slaveTradePage(
     task button_control();
     begin
         if (debounce) begin
+            debounce_timer <= debounce_timer + 1;
             if (debounce_timer == DEBOUNCE_TIME-1) begin
                 debounce <= 0;
                 debounce_timer <= 0;
             end
-            debounce <= debounce + 1;
         end else begin
             if (prev_btnU == 1 && btnU == 0) begin
                 key_in_value <= key_in_value == 9999 ? 0 : key_in_value + (sw[15] ? 1000 : (sw[14] ? 100 : (sw[13] ? 10 : 1)));

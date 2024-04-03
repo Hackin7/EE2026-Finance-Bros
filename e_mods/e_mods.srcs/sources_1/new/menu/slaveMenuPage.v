@@ -111,6 +111,6 @@ module slaveMenuPage(
         end else if (is_border(xpos, ypos, 9, 29, 61, 7)) begin
             pixel_data <= btnState == 4'd2 ? constant.GREEN : constant.WHITE;
         end else pixel_data <= constant.BLACK;
-        */
+    */
     end
 endmodule

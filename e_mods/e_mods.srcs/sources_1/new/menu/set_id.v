@@ -40,15 +40,15 @@ module set_id(
     reg prev_btnC=0, prev_btnU=0, prev_btnL=0, prev_btnR=0, prev_btnD=0;
     reg debounce = 0;
     reg [31:0] debounce_timer = 0;
-    parameter DEBOUNCE_TIME = 50; //100ms
+    parameter DEBOUNCE_TIME = 30_000_000; //100ms
     
     task button_control(); begin
         if (debounce) begin
+            debounce_timer <= debounce_timer + 1;
             if (debounce_timer == DEBOUNCE_TIME - 1) begin
                 debounce <= 0;
                 debounce_timer <= 0;
             end
-            debounce <= debounce + 1;
         end else begin
             if (prev_btnU == 1 && btnU == 0) begin 
                 key_in_value <= key_in_value == 9999 ? 0 : key_in_value + 1;
