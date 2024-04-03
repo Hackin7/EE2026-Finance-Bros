@@ -48,7 +48,7 @@ module module_master #(
     // OLED
     input [12:0] oled_pixel_index, output reg [15:0] oled_pixel_data,
     // OLED Text Module
-    input [8*STR_LEN*5-1:0] text_lines, input [12:0] text_colour,
+    output [8*STR_LEN*5-1:0] text_lines, output [15:0] text_colour,
     
     // Mouse - NOT NEEDED
     input [11:0] mouse_xpos,  mouse_ypos, input [3:0] mouse_zpos,

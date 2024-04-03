@@ -28,8 +28,8 @@ module menuCode#(
         input [15:0] sw, output [15:0] led, 
         input [12:0] oled_pixel_index, output [15:0] oled_pixel_data,
         // OLED Text Module
-        output [12:0]       text_colour, 
-        output [8*15*5-1:0] text_lines,
+        output reg [15:0]       text_colour, 
+        output reg [8*15*5-1:0] text_lines,
         // 7 seg
         output [6:0] seg, output dp, output [3:0] an,
         
@@ -59,6 +59,7 @@ module menuCode#(
     parameter STATE_CURRENT_TRADE = 5;
     parameter STATE_VIEW_ENCRYPTED = 7;
     
+    /* Pages --------------------------------------------------------------------*/
     //page one
     reg pageOne_reset = 1;
     wire [15:0] pageOne_pixel_data;
@@ -77,7 +78,7 @@ module menuCode#(
     
     //menu page
     reg [3:0] menu_button_state;
-    wire [12:0] menu_text_colour;
+    wire [15:0] menu_text_colour;
     wire [8*15*5-1:0] menu_text_lines;
     slaveMenuPage menuPage(
         //.clk(clk), .reset(menu_page_reset), .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
@@ -85,9 +86,6 @@ module menuCode#(
         .ypos(ypos), .text_colour(menu_text_colour), .text_lines(menu_text_lines),
         .menu_button_state(menu_button_state)
     );
-
-    assign text_colour = state == STATE_MENU ? menu_text_colour : 0;
-    assign text_lines  = state == STATE_MENU ? menu_text_lines  : 0;
 
     //input id page
     reg set_id_reset;
@@ -144,7 +142,8 @@ module menuCode#(
         .led(led), .sw(sw)
     );
     
-        //table page
+    /* More Pages --------------------------------------------------------------------*/
+    //table page
     reg [3:0] self_status_state = 0;
     wire [8*4-1:0] self_status_state_string;
     text_num_val_mapping text_num1_module(self_status_state, self_status_state_string);
@@ -163,11 +162,18 @@ module menuCode#(
     reg [7:0] table_stock3 = 9999;
     wire table_view_reset;
     wire [31:0] trade_slave_balance; 
+    
+    wire [15:0] table_view_text_colour;
+    wire [8*15*5-1:0] table_view_text_lines;
     slave_table_view table_view(
         .clk(clk), .reset(table_view_reset), 
         .pixel_index(oled_pixel_index), .oled_pixel_data(table_view_ready_pixel_data), 
-        .num1(trade_slave_account_id), .num2(table_balance), .num3(table_stock1), .num4(table_stock2), .num5(table_stock3), .num6(0)
+        .num1(trade_slave_account_id), .num2(table_balance), .num3(table_stock1), .num4(table_stock2), .num5(table_stock3), .num6(0), 
+        .xpos(xpos), .ypos(ypos), 
+        .text_lines(table_view_text_lines), .text_colour(table_view_text_colour)
     );
+
+
     wire [15:0] table_view_pixel_data = table_view_ready_pixel_data | (self_status_state != 3 ? table_view_loading_pixel_data : 0);
     
     wire [55:0] packet;
@@ -382,20 +388,30 @@ module menuCode#(
             control_an <= input_id_an;
             control_dp <= input_id_dp;
         end else if (state == STATE_MENU) begin
+            text_colour = menu_text_colour;
+            text_lines  = menu_text_lines;
             pixel_data <= 0;
             control_seg <= 0;
             control_dp <= 0;
             control_an <= 0;
         end else if (state == STATE_ADD_TRADE) begin
+            text_colour = 0;
+            text_lines  = 0;
             pixel_data <= pageOne_pixel_data;
             control_seg <= pageOne_seg;
             control_dp <= pageOne_dp;
             control_an <= pageOne_an;
         end else if (state == STATE_FAIL_ADD_TRADE) begin
+            text_colour = 0;
+            text_lines  = 0;
             pixel_data <= constant.RED;
         end else if (state == STATE_TABLE_VIEW) begin
+            text_colour = table_view_text_colour;
+            text_lines  = table_view_text_lines;
             pixel_data <= table_view_pixel_data;
         end else if (state == STATE_CURRENT_TRADE || state == STATE_VIEW_ENCRYPTED) begin
+            text_colour = 0;
+            text_lines  = 0;
             pixel_data <= last_packet_pixel_data;
         end
     end

@@ -28,7 +28,7 @@ module slaveMenuPage(
     //input btnC, btnU, btnL, btnR, btnD, input [15:0] sw,
     // OLED Text Module
     input [7:0] ypos,
-    output [12:0] text_colour, 
+    output [15:0] text_colour, 
     output [8*15*5-1:0] text_lines
     // Others
     //output [6:0] seg, output dp, output [3:0] an

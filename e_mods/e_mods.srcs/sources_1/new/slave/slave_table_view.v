@@ -32,7 +32,13 @@ module slave_table_view(
     input [31:0] num3, 
     input [31:0] num4, 
     input [31:0] num5, 
-    input [31:0] num6
+    input [31:0] num6, 
+
+    // OLED Text Module
+    input [7:0] xpos,
+    input [7:0] ypos,
+    output [15:0] text_colour, 
+    output [8*15*5-1:0] text_lines
     );
     
     wire [8*(4)-1:0] num_string1, num_string2, num_string3, 
@@ -45,52 +51,29 @@ module slave_table_view(
     text_num_val_mapping text_num6_module(num6, num_string6);
 
     constants constant();
+    
+    assign text_colour = (
+        (xpos > 49 ? constant.CYAN : constant.WHITE)
+    );
+    assign text_lines = {
+        {"USER ID", ":", num_string1, "   "},
+        {"BALANCE", ":", num_string2, "   "},
+        {"AAPL   ", ":", num_string3, "   "},
+        {"GOOG   ", ":", num_string4, "   "}, 
+        {"BABA   ", ":", num_string5, "   "}
+    };
+    
+    
     reg [15:0] pixel_data;
     assign oled_pixel_data = pixel_data;
     
-    reg [7:0] xpos, ypos;
-    
-    wire [15:0] user_pixel_data;
-    text_dynamic #(12) text_module(
-        .x(xpos), .y(ypos), 
-        .color(xpos > 46 ? constant.CYAN : constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(0), .string({"USER ID", ":", num_string1}), .offset(0), //9*6), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(user_pixel_data));
-    
-    wire [15:0] balance_pixel_data;
-    text_dynamic #(12) text_module2(
-        .x(xpos), .y(ypos), 
-        .color(xpos > 46 ? constant.CYAN : constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(10), .string({"BALANCE", ":", num_string2}), .offset(0), //9*6), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(balance_pixel_data));
-    
-    wire [15:0] stock_pixel_data;
-    text_dynamic #(12) text_module3(
-        .x(xpos), .y(ypos), 
-        .color(xpos > 46 ? constant.CYAN : constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(20), .string({"AAPL   ", ":", num_string3}), .offset(0), //9*6), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(stock_pixel_data));
-    
-    wire [15:0] stock2_pixel_data;
-    text_dynamic #(12) text_module4(
-        .x(xpos), .y(ypos), 
-        .color(xpos > 46 ? constant.CYAN : constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(30), .string({"GOOG   ", ":", num_string4}), .offset(0), //9*6), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(stock2_pixel_data));
-    
-    
-    wire [15:0] stock3_pixel_data;
-    text_dynamic #(12) text_module5(
-        .x(xpos), .y(ypos), 
-        .color(xpos > 46 ? constant.CYAN : constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(40), .string({"BABA   ", ":", num_string5}), .offset(0), //9*6), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(stock3_pixel_data));
+    //reg [7:0] xpos, ypos;
         
     always @ (*) begin
-        xpos = pixel_index % 96;
-        ypos = pixel_index / 96;
+        //xpos = pixel_index % 96;
+        //ypos = pixel_index / 96;
         
-        pixel_data <= user_pixel_data | balance_pixel_data | stock_pixel_data | stock2_pixel_data | stock3_pixel_data;
+        pixel_data <= 0; //user_pixel_data | balance_pixel_data | stock_pixel_data | stock2_pixel_data | stock3_pixel_data;
     end
     
 endmodule

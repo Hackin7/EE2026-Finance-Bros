@@ -52,7 +52,7 @@ module top (
     wire [15:0] text_pixel_data;
     
     wire [8*STR_LEN*5-1:0] text_lines;
-    wire [12:0] text_colour;
+    wire [15:0] text_colour;
     
     text_dynamic_multiline #(STR_LEN) text_display_module(
         .xpos(oled_xpos), .ypos(oled_ypos), 
@@ -163,7 +163,7 @@ module top (
     wire [15:0] master_oled_pixel_data;
 
     wire [8*STR_LEN*5-1:0] master_text_lines;
-    wire [12:0] master_text_colour;
+    wire [15:0] master_text_colour;
     //assign text_colour = master_text_colour;
 
     module_master master_module(
@@ -204,7 +204,7 @@ module top (
     wire [15:0] slave_oled_pixel_data;
 
     wire [8*STR_LEN*5-1:0] slave_text_lines;
-    wire [12:0] slave_text_colour;
+    wire [15:0] slave_text_colour;
     //assign text_colour = slave_text_colour;
 
     menuCode slave_menu(
