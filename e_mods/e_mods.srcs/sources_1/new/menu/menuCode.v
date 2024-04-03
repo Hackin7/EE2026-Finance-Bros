@@ -181,10 +181,13 @@ module menuCode#(
     wire [55:0] packet_encrypted;
     encryption encryptor(packet, trade_slave_account_id, packet_encrypted);
     
-    wire [15:0] last_packet_pixel_data;
+    
+    wire [15:0] packet_view_text_colour;
+    wire [8*15*5-1:0] packet_view_text_lines;
     view_packet last_packet(
         .packet(state == STATE_VIEW_ENCRYPTED ? packet_encrypted : packet),
-        .pixel_index(oled_pixel_index), .packet_pixel_data(last_packet_pixel_data)
+        .pixel_index(oled_pixel_index), 
+        .text_colour(packet_view_text_colour), .text_lines(packet_view_text_lines)
     );
 
     // Logic
@@ -383,6 +386,8 @@ module menuCode#(
         if (trade_module_send_success > 0) begin
             pixel_data <= constant.GREEN;   
         end else if (state == STATE_INPUT_SLAVE_ID) begin
+            text_colour = 0;
+            text_lines  = 0;
             pixel_data <= input_id_pixel_data;
             control_seg <= input_id_seg;
             control_an <= input_id_an;
@@ -410,9 +415,9 @@ module menuCode#(
             text_lines  = table_view_text_lines;
             pixel_data <= table_view_pixel_data;
         end else if (state == STATE_CURRENT_TRADE || state == STATE_VIEW_ENCRYPTED) begin
-            text_colour = 0;
-            text_lines  = 0;
-            pixel_data <= last_packet_pixel_data;
+            text_colour = packet_view_text_colour;
+            text_lines  = packet_view_text_lines;
+            pixel_data <= 0; //last_packet_pixel_data;
         end
     end
 
