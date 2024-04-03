@@ -90,6 +90,10 @@ module menuCode#(
     //input id page
     reg set_id_reset;
     wire [15:0] input_id_pixel_data;
+
+    wire [15:0] slave_id_text_colour;
+    wire [8*15*5-1:0] slave_id_text_lines;
+
     wire [6:0] input_id_seg;
     wire input_id_dp;
     wire [3:0] input_id_an;
@@ -99,6 +103,7 @@ module menuCode#(
         .clk(clk), .reset(set_id_reset),
         .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
         .sw(sw), .pixel_index(oled_pixel_index), .oled_pixel_data(input_id_pixel_data),
+        .text_colour(slave_id_text_colour), .text_lines(slave_id_text_lines), 
         .seg(input_id_seg), .dp(input_id_dp), .an(input_id_an), .account_id(account_id),
         .done(input_id_done)
     );
@@ -386,8 +391,8 @@ module menuCode#(
         if (trade_module_send_success > 0) begin
             pixel_data <= constant.GREEN;   
         end else if (state == STATE_INPUT_SLAVE_ID) begin
-            text_colour = 0;
-            text_lines  = 0;
+            text_colour = slave_id_text_colour;
+            text_lines  = slave_id_text_lines;
             pixel_data <= input_id_pixel_data;
             control_seg <= input_id_seg;
             control_an <= input_id_an;
