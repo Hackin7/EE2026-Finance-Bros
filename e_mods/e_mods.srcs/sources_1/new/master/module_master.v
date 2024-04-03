@@ -219,9 +219,11 @@ module module_master #(
         state == STOCK_TABLE_STATE ? "       ": 
         "               "
     };
-
+    
+    wire [15:0]     menu_text_colour;
+    
     assign text_lines = state == MENU_STATE ? menu_text_lines : {line1, line2, line3, line4, line5};
-    assign text_colour = state == MENU_STATE ? menu_text_colour : (xpos > 49 ? constant.CYAN : constant.WHITE);
+    assign text_colour = state == MENU_STATE ? menu_text_colour : (xpos >= 49 ? constant.CYAN : constant.WHITE);
             
     
     
@@ -229,7 +231,7 @@ module module_master #(
     reg master_menu_reset;
     reg [2:0] master_button_state;
     
-    wire [12:0]     menu_text_colour;
+    
     wire [8*15*5-1:0] menu_text_lines;
 
     master_menu menu(

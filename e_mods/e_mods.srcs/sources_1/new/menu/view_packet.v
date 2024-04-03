@@ -25,7 +25,10 @@ module view_packet(
     /*input [7:0] price, quantity, stock_id, 
     input action,*/
     input [12:0] pixel_index,
-    output [15:0] packet_pixel_data
+    output [15:0] packet_pixel_data,
+    // OLED Text Module
+    output [15:0]     text_colour, 
+    output [8*15*5-1:0] text_lines
     );
     
     constants constant();
