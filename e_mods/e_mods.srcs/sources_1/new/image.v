@@ -24,11 +24,14 @@ module image(
     // Control
     input reset, input clk,
     // LEDs, Switches, Buttons
-    input btnC, btnU, btnL, btnR, btnD, input [15:0] sw, output [15:0] led,
+    input btnU, btnL, btnR, btnD, input [15:0] sw, output [15:0] led,
     // 7 Segment Display
     output [6:0] seg, output dp, output [3:0] an,
     // OLED
-    inout [7:0] JB
+    inout [7:0] JB,
+    output hsync,
+    output vsync,
+    output [11:0] rgb
 );
 
     //// OLED Setup ////////////////////////////////////////////////////////
@@ -49,15 +52,21 @@ module image(
     reg [15:0] oled_pixel_data = 16'h0000;
     wire [15:0] pixel_data = oled_pixel_data;
     
-    Oled_Display display(
-        .clk(clk_6_25mhz), .reset(0),
-        .frame_begin(), .sending_pixels(), .sample_pixel(), .pixel_index(oled_pixel_index), .pixel_data(pixel_data),
-        .cs(Jb[0]), .sdin(Jb[1]), .sclk(Jb[3]), .d_cn(Jb[4]), .resn(Jb[5]), .vccen(Jb[6]), .pmoden(Jb[7])
+  
+    vga_oled_adaptor adaptor(
+        .clk(clk),
+        .reset(reset),
+        .JB(JB),
+        .pixel_index(oled_pixel_index),
+        .pixel_data(pixel_data),
+        .hsync(hsync),
+        .vsync(vsync),
+        .rgb(rgb)
     );
 
     always @ (*) begin
         if (oled_pixel_index < 7680) begin // Assuming 96x64 image
-            if (btnC) begin
+            if (btnU) begin
                 // When btnC is pressed, display the second image
                 oled_pixel_data = image2_memory[oled_pixel_index];
             end else begin
