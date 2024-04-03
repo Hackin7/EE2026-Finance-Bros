@@ -88,12 +88,19 @@ module slaveMenuPage(
             .color(menu_button_state == 3 ? constant.CYAN : constant.WHITE), .background(constant.BLACK), 
             .text_y_pos(40), .string("SET ACCOUNT ID"), .offset(0), //13*6), 
             .repeat_flag(0), .x_pos_offset(0), .pixel_data(set_id_pixel_data));
+            
+    wire [15:0] view_encryption_pixel_data;
+    text_dynamic #(15) text_module5(
+            .x(xpos), .y(ypos), 
+            .color(menu_button_state == 4 ? constant.CYAN : constant.WHITE), .background(constant.BLACK), 
+            .text_y_pos(50), .string("VIEW ENCRYPTION"), .offset(0), //13*6), 
+            .repeat_flag(0), .x_pos_offset(0), .pixel_data(view_encryption_pixel_data));
     
     always @ (*) begin
         xpos <= pixel_index % 96;
         ypos <= pixel_index / 96;
         pixel_data <= view_info_pixel_data | start_trade_pixel_data | 
-                      current_trade_pixel_data | set_id_pixel_data;
+                      current_trade_pixel_data | set_id_pixel_data | view_encryption_pixel_data;
     /*
         if (is_border(xpos, ypos, 9, 9, 55, 7)) begin
             pixel_data <= btnState == 4'd0 ? constant.GREEN : constant.WHITE;
