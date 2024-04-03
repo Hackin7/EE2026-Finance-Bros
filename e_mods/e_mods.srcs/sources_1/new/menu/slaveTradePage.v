@@ -53,16 +53,16 @@ module slaveTradePage(
     task nextState();
     begin
         if (pageNo == 0) begin
-            price <= key_in_value;
+            stock_id <= key_in_value;
             key_in_value <= 0;
             pageNo <= 1;
         end else if (pageNo == 1) begin
-            quantity <= key_in_value;
+            price <= key_in_value;
             key_in_value <= 0;
             pageNo <= 2;
 
         end else if (pageNo == 2) begin
-            stock_id <= key_in_value;
+            quantity <= key_in_value;
             key_in_value <= 0;
             pageNo <= 3;
         end else if (pageNo == 3) begin
