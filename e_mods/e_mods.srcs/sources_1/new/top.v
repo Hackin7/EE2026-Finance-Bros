@@ -66,7 +66,7 @@ module top (
         .line4(text_lines[8*STR_LEN*4-1:8*STR_LEN*3]), 
         .line5(text_lines[8*STR_LEN*3-1:8*STR_LEN*2]), 
         .line6(text_lines[8*STR_LEN*2-1:8*STR_LEN*1]), 
-        //.line7(text_lines[8*STR_LEN*1-1:8*STR_LEN*0]), 
+        .line7(text_lines[8*STR_LEN*1-1:8*STR_LEN*0]), 
         .oled_pixel_data(text_pixel_data) 
     );
 
@@ -162,12 +162,13 @@ module top (
     // Temporary intro page
     constants constant();
     wire [15:0] intro_text_colour = constant.WHITE;
-    wire [15*6*8-1:0]  intro_text_lines = {
+    wire [15*7*8-1:0]  intro_text_lines = {
         "EE2026         ",
         "FINANCE BROS   ",
         "               ",
         "TRUST US BRO   ", 
         "               ", 
+        "               ",
         "               "
     };
 
@@ -248,10 +249,10 @@ module top (
     wire enable_mode_slave = sw[1];
     
 
-    reg [15:0] r_led;             assign led = r_led;
-    reg [6:0] r_seg;              assign seg = r_seg;
-    reg r_dp;                     assign dp = r_dp;
-    reg [3:0]  r_an;              assign an = r_an;
+    reg [15:0] r_led;                           assign led = r_led;
+    reg [6:0] r_seg;                            assign seg = r_seg;
+    reg r_dp;                                   assign dp = r_dp;
+    reg [3:0]  r_an;                            assign an = r_an;
     reg [UART_FRAME_SIZE*DBITS-1:0] r_uart_tx;  assign uart_tx = r_uart_tx;
     reg r_uart_tx_trigger;                      assign uart_tx_trigger = r_uart_tx_trigger;
     reg r_uart_rx_clear;                        assign uart_rx_clear = r_uart_rx_clear;

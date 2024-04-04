@@ -123,6 +123,8 @@ module menuCode#(
     wire [7:0] trade_slave_get_stock1;
     wire [7:0] trade_slave_get_stock2;
     wire [7:0] trade_slave_get_stock3;
+    wire encrypted = sw[11];
+    wire decrypted = sw[12];
     trade_module_slave 
         #(
          .DBITS(DBITS), .UART_FRAME_SIZE(UART_FRAME_SIZE), .RX_TIMEOUT(100_000_000)
@@ -145,7 +147,7 @@ module menuCode#(
         .stock1(trade_slave_get_stock1),
         .stock2(trade_slave_get_stock2),
         .stock3(trade_slave_get_stock3),
-        .led(led), .sw(sw)
+        .led(led), .sw(sw), .encrypted(encrypted), .decrypted(decrypted)
     );
     
     /* More Pages --------------------------------------------------------------------*/
@@ -187,10 +189,10 @@ module menuCode#(
     assign packet = uart_tx; //current trade page
     wire [63:0] packet_encrypted;
     wire [63:0] packet_decrypted;
-    encryption encryptor(.clk(clk), .reset(encrypt_reset), .action(0),
+    encryption encryptor(.action(0),
     .seed(0), .data_in(packet), .data_out(packet_encrypted)
     );
-    encryption decryptor(.clk(clk), .reset(encrypt_reset), .action(1),
+    encryption decryptor(.action(1),
         .seed(0), .data_in(packet_encrypted), .data_out(packet_decrypted)
     );
     wire [15:0] encrypted_text_colour;
