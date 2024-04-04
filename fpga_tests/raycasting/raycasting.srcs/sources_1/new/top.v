@@ -240,7 +240,7 @@ module top (
     reg [15:0] pixel_data = 16'h0000;
     assign oled_pixel_data = pixel_data;
     
-    wire [7:0] colour_factor = (1 + distance/(8));
+    wire [7:0] colour_factor = (1 + distance/(4)); // 8 for accurate lighting
     assign oled_xpos = oled_pixel_index % 96;
     assign oled_ypos = oled_pixel_index / 96;
     always @(*) begin

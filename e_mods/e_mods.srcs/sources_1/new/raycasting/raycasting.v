@@ -66,11 +66,15 @@ module raycasting # (
     end
     endtask
     /// Raycasting ////////////////////////////////////////////////
+        
+    
     constants constant();
     parameter BW_INT=8;
     parameter BW_DEC=8;
     parameter BW = BW_INT + BW_DEC;
     parameter FOV = 60;
+    
+    
     
     reg signed [15:0] sin_array [65535:0]; // 2nd index is size of array, not bit
     reg signed [15:0] cos_array [65535:0];
@@ -106,13 +110,12 @@ module raycasting # (
         8'b11111111,
         8'b10000001,
         8'b10000001,
-        8'b10001001,
+        8'b10000001,
         8'b10000001,
         8'b10000001,
         8'b10000001,
         8'b11111111
     };
-    
     
     reg [12:0] prev_pixel_index = 0;
     reg [BW-1:0] distance=9;
@@ -166,7 +169,7 @@ module raycasting # (
     );
     
     always @ (posedge clk) begin
-        if (world_map[map_index] == 0) begin
+        if (world_map[map_index] == 0) begin // && world_map_blue[map_index]==0) begin
             raycast_x <= raycast_x + (dx>>1);
             raycast_y <= raycast_y + (dy>>1);
             raycast_step <= raycast_step + 1;
@@ -211,7 +214,7 @@ module raycasting # (
     reg [15:0] pixel_data = 16'h0000;
     assign oled_pixel_data = pixel_data;
     
-    wire [7:0] colour_factor = (1 + distance/(1<<2));
+    wire [7:0] colour_factor = (1 + distance/(4)); // 8 for accurate lighting
     assign oled_xpos = oled_pixel_index % 96;
     assign oled_ypos = oled_pixel_index / 96;
     always @(*) begin
@@ -221,8 +224,14 @@ module raycasting # (
         if (oled_ypos >= 32) begin
             pixel_data = constant.GREEN;
         end
-        if (32 - (64/distance) <= oled_ypos && oled_ypos <= 32 + ((64)/distance)) begin
-            pixel_data = {(5'b11111 / colour_factor), 5'b11111 / colour_factor, 5'b0};
+        if (32 - (sw/distance) <= oled_ypos && oled_ypos <= 32 + ((sw)/distance)) begin
+            pixel_data = {(5'b11111 / colour_factor), 6'b11111 / colour_factor, 5'b0};
+            /*
+            if (world_map_blue[map_index] != 0) begin
+                pixel_data = {(5'b0 / colour_factor), 6'b0 / colour_factor, 5'b11111};
+            end else if (world_map[map_index] != 0) begin
+                pixel_data = {(5'b11111 / colour_factor), 6'b11111 / colour_factor, 5'b0};
+            end*/
         end
         
         
@@ -231,7 +240,5 @@ module raycasting # (
         display_bill(36, money_y+20);
         display_bill(53, money_y);
         display_bill(70, money_y+30);
-
     end
 endmodule
-
