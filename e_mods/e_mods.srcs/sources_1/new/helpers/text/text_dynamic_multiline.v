@@ -8,6 +8,7 @@ module text_dynamic_multiline#(
     input [8*STR_LEN-1:0] line3, 
     input [8*STR_LEN-1:0] line4, 
     input [8*STR_LEN-1:0] line5, 
+    input [8*STR_LEN-1:0] line6,
     output [15:0] oled_pixel_data
 );
     //constants library
@@ -22,14 +23,16 @@ module text_dynamic_multiline#(
 			ypos < 20 ? 10 : 
 			ypos < 30 ? 20 : 
 			ypos < 40 ? 30 : 
-			40 
+			ypos < 50 ? 40 :
+			50
 		), 
 		.string(
 			ypos < 10 ? line1 : 
 			ypos < 20 ? line2 : 
 			ypos < 30 ? line3 : 
 			ypos < 40 ? line4 : 
-			line5 
+			ypos < 50 ? line5 :
+			line6
 		), 
 		.offset(0), //9*6), 
 		.repeat_flag(0), 
