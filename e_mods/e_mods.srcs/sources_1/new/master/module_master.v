@@ -321,9 +321,9 @@ module module_master #(
         xpos = oled_pixel_index % 96;
         ypos = oled_pixel_index / 96;
         case (state)
-        MENU_STATE: oled_pixel_data <= 0;
-        USER_TABLE_STATE: oled_pixel_data <= 0;
-        STOCK_TABLE_STATE: oled_pixel_data <= 0;
+        MENU_STATE: oled_pixel_data <= 0 ;
+        USER_TABLE_STATE: oled_pixel_data <= (ypos == 7) ? constant.GRAY : 0 ;
+        STOCK_TABLE_STATE: oled_pixel_data <= (ypos == 7) ? constant.GRAY : 0 ;
         GRAPH_STATE: oled_pixel_data <= constant.YELLOW;
         endcase
     end

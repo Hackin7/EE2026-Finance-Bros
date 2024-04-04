@@ -51,7 +51,7 @@ module raycasting # (
     reg [7:0] money_y = 0;
     
     always @ (posedge clk_money) begin
-        money_y <= money_y == 64 ? 5 : money_y + 1;
+        money_y <= money_y == 64 ? -60 : money_y + 1;
     end
     
     task display_bill(input [7:0] x, input[7:0] y);
@@ -224,7 +224,7 @@ module raycasting # (
         if (oled_ypos >= 32) begin
             pixel_data = constant.GREEN;
         end
-        if (32 - (sw/distance) <= oled_ypos && oled_ypos <= 32 + ((sw)/distance)) begin
+        if (32 - (64/distance) <= oled_ypos && oled_ypos <= 32 + ((64)/distance)) begin
             pixel_data = {(5'b11111 / colour_factor), 6'b11111 / colour_factor, 5'b0};
             /*
             if (world_map_blue[map_index] != 0) begin

@@ -77,7 +77,7 @@ module top (
     reg [7:0] money_y = 0;
     
     always @ (posedge clk_money) begin
-        money_y <= money_y == 64 ? -50 : money_y + 1;
+        money_y <= money_y == 64 ? -60 : money_y + 1;
     end
     
     task display_bill(input [7:0] x, input[7:0] y);
