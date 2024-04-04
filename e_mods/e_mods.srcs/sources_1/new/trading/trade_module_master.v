@@ -634,7 +634,7 @@ module trade_module_master #(
             if (slave2_price <= curr2_stock_price) begin
                 market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)-1);
             end else if (slave2_price > curr2_stock_price) begin
-                market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)+1); // For Debugging
+                //market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)+1); // For Debugging
             end
         end
     end
