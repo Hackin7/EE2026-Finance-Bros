@@ -40,7 +40,8 @@ module view_packet(
     assign close_packet = unencrypted_packet[7:0];
     assign price = unencrypted_packet[23:16];
     assign quantity = unencrypted_packet[31:24];
-    assign stock_id = unencrypted_packet[47:40];
+    assign stock_id = unencrypted_packet[39:32];
+    assign account_id = unencrypted_packet[47:40];
     assign action = unencrypted_packet[55:48];
     assign open_packet = unencrypted_packet[63:56];
     

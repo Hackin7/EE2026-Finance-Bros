@@ -197,8 +197,8 @@ module menuCode#(
     wire [8*15*5-1:0] encrypted_text_lines;
     view_packet last_packet(
         /*.packet(state == STATE_VIEW_ENCRYPTED ? 
-        packet_encrypted : packet),
-        .pixel_index(oled_pixel_index), .packet_pixel_data(last_packet_pixel_data)*/
+        packet_encrypted : packet),*/
+        .pixel_index(oled_pixel_index), //.packet_pixel_data(last_packet_pixel_data)
         .unencrypted_packet(packet), .encrypted_packet(state == STATE_VIEW_ENCRYPTED ? packet_encrypted : 0), .decrypted_packet(state == STATE_VIEW_ENCRYPTED ? packet_decrypted : 0),
         .text_colour(encrypted_text_colour), .text_lines(encrypted_text_lines)
     );
@@ -434,10 +434,10 @@ module menuCode#(
         end else if (state == STATE_TABLE_VIEW) begin
             text_colour = table_view_text_colour;
             text_lines  = table_view_text_lines;
-            pixel_data <= table_view_pixel_data;
-            control_seg <= ~7'b0;
-            control_dp <= 1;
-            control_an <= ~4'b0;
+            pixel_data  = table_view_pixel_data;
+            control_seg = ~7'b0;
+            control_dp = 1;
+            control_an = ~4'b0;
         end else if (state == STATE_CURRENT_TRADE || state == STATE_VIEW_ENCRYPTED) begin
             text_colour = encrypted_text_colour;
             text_lines  = encrypted_text_lines;
