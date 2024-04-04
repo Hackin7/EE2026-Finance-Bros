@@ -26,7 +26,10 @@ module top (
     inout [7:0] JB,
     inout mouse_ps2_clk, mouse_ps2_data
 );
-    
+    /*
+    rx0 tx0 rx1 tx1 rx2 tx2
+    JA0 JA1 JA2 JA3 JA7 JA8
+    */
     //// Setup ///////////////////////////////////////////////////////////////////////////////////////////////////////
     //// Clocks /////////////////////////////////////////////
     wire clk_6_25mhz;
@@ -83,8 +86,8 @@ module top (
     );*/
     //// UART //////////////////////////////////////////////
     //// UART //////////////////////////////////////////////
-    wire rx; assign rx = sw[15] ? rxUSB : rx0; // Receive data to board - send from PC/ master
-    wire tx; assign txUSB = tx; assign tx0 = tx;
+    // wire rx; //assign rx = sw[15] ? rxUSB : rx0; // Receive data to board - send from PC/ master
+    // wire tx; assign txUSB = tx; assign tx0 = tx;
 
     parameter DBITS = 8;
     parameter UART_FRAME_SIZE = 8;
@@ -102,7 +105,7 @@ module top (
         UART_UNIT
         (
             .clk_100MHz(clk),
-            .rx(rx), .tx(tx),
+            .rx(rx0), .tx(tx0),
             // .rx_full(rx_full), .rx_empty(rx_empty), .rx_tick(rx_tick),
             .rx_out(uart_rx),
             .rx_clear(uart_rx_clear),
@@ -152,12 +155,26 @@ module top (
             .tx_trigger(uart2_tx_trigger),
             .tx_in(uart2_tx)
         );
+
+    //// Intro Page ////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Temporary intro page
+    constants constant();
+    wire [15:0] intro_text_colour = constant.WHITE;
+    wire [15*5*8-1:0]  intro_text_lines = {
+        "EE2026         ",
+        "FINANCE BROS   ",
+        "               ",
+        "TRUST US BRO   ", 
+        "               "
+    };
+
     //// Master Module //////////////////////////////////////////////////////////////////////////////////////////////////
     wire master_reset;
     wire [15:0] master_led; 
     wire [6:0] master_seg;
     wire master_dp;
     wire [3:0] master_an;
+    wire [UART_FRAME_SIZE*DBITS-1:0] master_uart_tx;
     wire master_uart_tx_trigger;
     wire master_uart_rx_clear;
     wire [15:0] master_oled_pixel_data;
@@ -200,7 +217,7 @@ module top (
     wire [3:0] slave_an;
     wire slave_uart_tx_trigger;
     wire slave_uart_rx_clear;
-    wire slave_uart_tx;
+    wire [UART_FRAME_SIZE*DBITS-1:0] slave_uart_tx;
     wire [15:0] slave_oled_pixel_data;
 
     wire [8*STR_LEN*5-1:0] slave_text_lines;
@@ -217,7 +234,7 @@ module top (
         .seg(slave_seg), .dp(slave_dp), .an(slave_an), 
         
         .uart_rx(uart_rx),
-        .uart_tx(uart_tx),
+        .uart_tx(slave_uart_tx),
         .uart_tx_trigger(slave_uart_tx_trigger),
         .uart_rx_clear(slave_uart_rx_clear)
     );
@@ -227,13 +244,59 @@ module top (
     wire enable_mode_master = sw[0];
     wire enable_mode_slave = sw[1];
     
-    assign led = enable_mode_master ? master_led : (enable_mode_slave ? slave_led: {11'd0, rxUSB, rx0, rx1, rx2, rx});//16'hFFFF);
-    assign seg = enable_mode_master ? master_seg : (enable_mode_slave ? slave_seg: 7'b1111111);
-    assign dp = enable_mode_master ? master_dp : (enable_mode_slave ? slave_dp : 1);
-    assign an = enable_mode_master ? master_an : (enable_mode_slave ? slave_an :  4'b1111);
-    assign uart_tx_trigger = enable_mode_master ? master_uart_tx_trigger : (enable_mode_slave ? slave_uart_tx_trigger :  1'b0);
-    assign uart_rx_clear = enable_mode_master ? master_uart_rx_clear : (enable_mode_slave ? slave_uart_rx_clear :  1'b0);
-    assign oled_pixel_data = (enable_mode_master ? master_oled_pixel_data : (enable_mode_slave ? slave_oled_pixel_data : 16'hFFFF)) | text_pixel_data;
-    assign text_lines = (enable_mode_master ? master_text_lines : (enable_mode_slave ? slave_text_lines : 0));
-    assign text_colour = (enable_mode_master ? master_text_colour : (enable_mode_slave ? slave_text_colour : 0));
+
+    reg [15:0] r_led;             assign led = r_led;
+    reg [6:0] r_seg;              assign seg = r_seg;
+    reg r_dp;                     assign dp = r_dp;
+    reg [3:0]  r_an;              assign an = r_an;
+    reg [UART_FRAME_SIZE*DBITS-1:0] r_uart_tx;  assign uart_tx = r_uart_tx;
+    reg r_uart_tx_trigger;                      assign uart_tx_trigger = r_uart_tx_trigger;
+    reg r_uart_rx_clear;                        assign uart_rx_clear = r_uart_rx_clear;
+    reg [15:0] r_oled_pixel_data;               assign oled_pixel_data = r_oled_pixel_data | text_pixel_data;
+    reg [8*STR_LEN*5-1:0] r_text_lines;         assign text_lines = r_text_lines;
+    reg [15:0] r_text_colour;                   assign text_colour = r_text_colour;
+    
+    always @ (*) begin
+        if (enable_mode_master) begin
+            r_led = master_led;
+            r_seg = master_seg;
+            r_dp = master_dp;
+            r_an = master_an;
+
+            r_uart_tx = master_uart_tx;
+            r_uart_tx_trigger = master_uart_tx_trigger;
+            r_uart_rx_clear = master_uart_rx_clear;
+
+            r_oled_pixel_data = master_oled_pixel_data;
+            r_text_lines = master_text_lines;
+            r_text_colour = master_text_colour;
+        end else if (enable_mode_slave) begin
+            r_led = slave_led;
+            r_seg = slave_seg;
+            r_dp = slave_dp;
+            r_an = slave_an;
+
+            r_uart_tx = slave_uart_tx;
+            r_uart_tx_trigger = slave_uart_tx_trigger;
+            r_uart_rx_clear = slave_uart_rx_clear;
+
+            r_oled_pixel_data = slave_oled_pixel_data;
+            r_text_lines = slave_text_lines;
+            r_text_colour = slave_text_colour;
+
+        end else begin
+            r_led = {11'd0, rxUSB, rx0, rx1, rx2, rx0};
+            r_seg = 7'b1111111;
+            r_dp = 1;
+            r_an = 4'b1111;
+
+            r_uart_tx = 1'b0;
+            r_uart_tx_trigger = 1'b0;
+            r_uart_rx_clear = 1'b0;
+
+            r_oled_pixel_data = 16'h0;
+            r_text_lines = intro_text_lines; 
+            r_text_colour = intro_text_colour;
+        end
+    end
 endmodule

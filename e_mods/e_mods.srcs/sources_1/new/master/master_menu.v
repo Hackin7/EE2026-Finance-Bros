@@ -35,8 +35,8 @@ module master_menu(
 
     assign text_colour = (
         button_state == 0 && (ypos < 10) ? constant.RED : 
-        button_state == 1 && (10 < ypos && ypos < 20) ? constant.YELLOW : 
-        button_state == 2 && (20 < ypos && ypos < 30) ? constant.GREEN : 
+        button_state == 1 && (10 <= ypos && ypos < 20) ? constant.YELLOW : 
+        button_state == 2 && (20 <= ypos && ypos < 30) ? constant.GREEN : 
         constant.WHITE
     );
     assign text_lines = {

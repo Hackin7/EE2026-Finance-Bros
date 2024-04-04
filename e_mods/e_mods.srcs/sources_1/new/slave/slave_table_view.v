@@ -53,7 +53,7 @@ module slave_table_view(
     constants constant();
     
     assign text_colour = (
-        (xpos > 49 ? constant.CYAN : constant.WHITE)
+        (xpos >= 48 ? constant.CYAN : constant.WHITE)
     );
     assign text_lines = {
         {"USER ID", ":", num_string1, "   "},
