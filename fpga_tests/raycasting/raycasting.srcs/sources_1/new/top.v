@@ -42,6 +42,8 @@ module top (
     // Outputs
     wire [12:0] oled_pixel_index;
     wire [15:0] oled_pixel_data;
+    wire [7:0] oled_xpos;
+    wire [7:0] oled_ypos;
     // Module
     Oled_Display display(
         .clk(clk_6_25mhz), .reset(0), 
@@ -64,9 +66,33 @@ module top (
         .ps2_clk(mouse_ps2_clk), .ps2_data(mouse_ps2_data)
     );*/
     
+    /* Money animating -------------------------------------------*/
+    reg [15:0] money_bill_img[255:0];
+    initial begin
+            $readmemh("bill.mem", money_bill_img);
+    end
+    
+    wire clk_money;
+    clk_counter #(10_000_000, 10_000_000, 32) clkmoney (clk, clk_money);
+    reg [7:0] money_y = 0;
+    
+    always @ (posedge clk_money) begin
+        money_y <= money_y == 64 ? 5 : money_y + 1;
+    end
+    
+    task display_bill(input [7:0] x, input[7:0] y);
+    begin
+        if (
+            (x <= oled_xpos && oled_xpos < x+16 && y <= oled_ypos && oled_ypos < y + 16)
+        ) begin
+            if (!btnC && money_bill_img[(oled_ypos - y) * 16 + (oled_xpos-x)] != ~15'h0) begin
+                pixel_data = money_bill_img[(oled_ypos - y) * 16 + (oled_xpos-x)];
+            end
+        end
+    end
+    endtask
     /// Raycasting ////////////////////////////////////////////////
-    wire [7:0] oled_xpos;
-    wire [7:0] oled_ypos;
+    
     
     constants constant();
     parameter BW_INT=8;
@@ -219,16 +245,23 @@ module top (
     assign oled_xpos = oled_pixel_index % 96;
     assign oled_ypos = oled_pixel_index / 96;
     always @(*) begin
-        
         if (oled_ypos <= 32) begin
-            pixel_data <= constant.CYAN;
+            pixel_data = constant.CYAN;
         end
         if (oled_ypos >= 32) begin
-            pixel_data <= constant.GREEN;
+            pixel_data = constant.GREEN;
         end
         if (32 - (sw/distance) <= oled_ypos && oled_ypos <= 32 + ((sw)/distance)) begin
-            pixel_data <= {(5'b11111 / colour_factor), 5'b11111 / colour_factor, 5'b0};
+            pixel_data = {(5'b11111 / colour_factor), 5'b11111 / colour_factor, 5'b0};
         end
+        
+        
+        display_bill(0, money_y+30);
+        display_bill(17, money_y);
+        display_bill(36, money_y+20);
+        display_bill(53, money_y);
+        display_bill(70, money_y+30);
+
     end
 endmodule
 
