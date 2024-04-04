@@ -29,7 +29,7 @@ module slaveMenuPage(
     // OLED Text Module
     input [7:0] ypos,
     output [15:0] text_colour, 
-    output [8*15*5-1:0] text_lines
+    output [8*15*7-1:0] text_lines
     // Others
     //output [6:0] seg, output dp, output [3:0] an
 );
@@ -48,6 +48,8 @@ module slaveMenuPage(
         "CURRENT TRADE  ",
         "START TRADE    ",
         "SET ACCOUNT ID ", 
-        "VIEW ENCRYPTION"
+        "VIEW ENCRYPTION", 
+        "               ",
+        "               "
     };
 endmodule

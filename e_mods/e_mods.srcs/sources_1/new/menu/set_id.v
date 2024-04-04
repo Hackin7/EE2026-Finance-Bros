@@ -29,7 +29,7 @@ module set_id(
     output [15:0] oled_pixel_data,
     // OLED Text
     output [15:0] text_colour, 
-    output [8*15*5-1:0] text_lines,
+    output [8*15*7-1:0] text_lines,
 
     output [6:0] seg, output dp, output [3:0] an,
     output reg [31:0] account_id,
@@ -100,6 +100,8 @@ module set_id(
         {account_num, "           "}, 
         "               ",
         "               ",
+        "               ", 
+        "               ", 
         "               "
     };
 

@@ -38,7 +38,7 @@ module slave_table_view(
     input [7:0] xpos,
     input [7:0] ypos,
     output [15:0] text_colour, 
-    output [8*15*5-1:0] text_lines
+    output [8*15*7-1:0] text_lines
     );
     
     wire [8*(4)-1:0] num_string1, num_string2, num_string3, 
@@ -60,7 +60,9 @@ module slave_table_view(
         {"BALANCE", ":", num_string2, "   "},
         {"AAPL   ", ":", num_string3, "   "},
         {"GOOG   ", ":", num_string4, "   "}, 
-        {"BABA   ", ":", num_string5, "   "}
+        {"BABA   ", ":", num_string5, "   "}, 
+        "               ",
+        "               "
     };
     
     

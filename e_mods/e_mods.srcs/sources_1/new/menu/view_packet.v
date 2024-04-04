@@ -30,7 +30,7 @@ module view_packet(
     output [15:0] packet_pixel_data,
     // OLED Text Module
     output [15:0]     text_colour, 
-    output [8*15*5-1:0] text_lines
+    output [8*15*7-1:0] text_lines
     );
     
     constants constant();
@@ -60,25 +60,44 @@ module view_packet(
     text_num_val_mapping stock_num_module(stock_id, stock_num);
     
     assign text_colour = (
-        action == 0 ? constant.RED : 
-        (xpos >= 49 ? constant.CYAN : constant.WHITE)
+        (encrypted_packet == 0) ? (    
+            action == 0 ? constant.RED : 
+            (xpos >= 49 ? constant.CYAN : constant.WHITE)
+        ): (
+            (ypos < 10) ? constant.WHITE : 
+            (10 <= ypos && ypos < 20) ? constant.CYAN : 
+            (20 <= ypos && ypos < 30) ? constant.WHITE : 
+            (30 <= ypos && ypos < 40) ? constant.CYAN : 
+            (40 <= ypos && ypos < 50) ? constant.WHITE : 
+            (50 <= ypos && ypos < 60) ? constant.CYAN : 
+            constant.WHITE
+        )
     );
-    wire [8*15*5-1:0] text_lines_view = (encrypted_packet == 0) ? 
+    wire [8*15*7-1:0] text_lines_view = (encrypted_packet == 0) ? 
                         {
                             "STOCK ID   ", stock_num,
                             "QUANTITY   ", quantity_num, 
                             "PRICE      ", price_num,
                             "ACTION     ", (action == 1 ? "BUY " :  action == 2 ? "SELL" : "----"), 
+                            "               ",
+                            "               ",
                             "               "
                         }: 
-                        {"UNCRYPTED      ", unencrypted_string, "   ",
-                          "ENCRYPTED      ", encrypted_string, "   ",
-                          "DECRYPTED      ", decrypted_string, "   "};
+                        { "UNCRYPTED      ", 
+                          unencrypted_string, "   ",
+                          "ENCRYPTED      ", 
+                          encrypted_string, "   ",
+                          "DECRYPTED      ", 
+                          decrypted_string, "   ",
+                          "               "
+                        };
     
     assign text_lines = (
         action == 0 ? {
             "NOTHING IS     ",
             "BEING SENT     ",
+            "               ",
+            "               ",
             "               ",
             "               ",
             "               "

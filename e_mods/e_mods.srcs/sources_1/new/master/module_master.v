@@ -48,7 +48,7 @@ module module_master #(
     // OLED
     input [12:0] oled_pixel_index, output reg [15:0] oled_pixel_data,
     // OLED Text Module
-    output [8*STR_LEN*5-1:0] text_lines, output [15:0] text_colour,
+    output [8*STR_LEN*7-1:0] text_lines, output [15:0] text_colour,
     
     // Mouse - NOT NEEDED
     input [11:0] mouse_xpos,  mouse_ypos, input [3:0] mouse_zpos,
@@ -222,7 +222,7 @@ module module_master #(
     
     wire [15:0]     menu_text_colour;
     
-    assign text_lines = state == MENU_STATE ? menu_text_lines : {line1, line2, line3, line4, line5};
+    assign text_lines = state == MENU_STATE ? menu_text_lines : {line1, line2, line3, line4, line5, "               ", "               "};
     assign text_colour = state == MENU_STATE ? menu_text_colour : (xpos >= 49 ? constant.CYAN : constant.WHITE);
             
     
@@ -232,7 +232,7 @@ module module_master #(
     reg [2:0] master_button_state;
     
     
-    wire [8*15*5-1:0] menu_text_lines;
+    wire [8*15*7-1:0] menu_text_lines;
 
     master_menu menu(
         .clk(clk), .reset(master_menu_reset),

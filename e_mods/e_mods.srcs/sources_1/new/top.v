@@ -54,17 +54,19 @@ module top (
     wire [7:0] oled_ypos = oled_pixel_index / 96;
     wire [15:0] text_pixel_data;
     
-    wire [8*STR_LEN*5-1:0] text_lines;
+    wire [8*STR_LEN*7-1:0] text_lines;
     wire [15:0] text_colour;
     
     text_dynamic_multiline #(STR_LEN) text_display_module(
         .xpos(oled_xpos), .ypos(oled_ypos), 
         .colour(text_colour), 
-        .line1(text_lines[8*STR_LEN*5-1:8*STR_LEN*4]), 
-        .line2(text_lines[8*STR_LEN*4-1:8*STR_LEN*3]), 
-        .line3(text_lines[8*STR_LEN*3-1:8*STR_LEN*2]), 
-        .line4(text_lines[8*STR_LEN*2-1:8*STR_LEN*1]), 
-        .line5(text_lines[8*STR_LEN*1-1:8*STR_LEN*0]), 
+        .line1(text_lines[8*STR_LEN*7-1:8*STR_LEN*6]), 
+        .line2(text_lines[8*STR_LEN*6-1:8*STR_LEN*5]), 
+        .line3(text_lines[8*STR_LEN*5-1:8*STR_LEN*4]), 
+        .line4(text_lines[8*STR_LEN*4-1:8*STR_LEN*3]), 
+        .line5(text_lines[8*STR_LEN*3-1:8*STR_LEN*2]), 
+        .line6(text_lines[8*STR_LEN*2-1:8*STR_LEN*1]), 
+        //.line7(text_lines[8*STR_LEN*1-1:8*STR_LEN*0]), 
         .oled_pixel_data(text_pixel_data) 
     );
 
@@ -160,11 +162,12 @@ module top (
     // Temporary intro page
     constants constant();
     wire [15:0] intro_text_colour = constant.WHITE;
-    wire [15*5*8-1:0]  intro_text_lines = {
+    wire [15*6*8-1:0]  intro_text_lines = {
         "EE2026         ",
         "FINANCE BROS   ",
         "               ",
         "TRUST US BRO   ", 
+        "               ", 
         "               "
     };
 
@@ -179,7 +182,7 @@ module top (
     wire master_uart_rx_clear;
     wire [15:0] master_oled_pixel_data;
 
-    wire [8*STR_LEN*5-1:0] master_text_lines;
+    wire [8*STR_LEN*7-1:0] master_text_lines;
     wire [15:0] master_text_colour;
     //assign text_colour = master_text_colour;
 
@@ -220,7 +223,7 @@ module top (
     wire [UART_FRAME_SIZE*DBITS-1:0] slave_uart_tx;
     wire [15:0] slave_oled_pixel_data;
 
-    wire [8*STR_LEN*5-1:0] slave_text_lines;
+    wire [8*STR_LEN*7-1:0] slave_text_lines;
     wire [15:0] slave_text_colour;
     //assign text_colour = slave_text_colour;
 
@@ -253,7 +256,7 @@ module top (
     reg r_uart_tx_trigger;                      assign uart_tx_trigger = r_uart_tx_trigger;
     reg r_uart_rx_clear;                        assign uart_rx_clear = r_uart_rx_clear;
     reg [15:0] r_oled_pixel_data;               assign oled_pixel_data = r_oled_pixel_data | text_pixel_data;
-    reg [8*STR_LEN*5-1:0] r_text_lines;         assign text_lines = r_text_lines;
+    reg [8*STR_LEN*7-1:0] r_text_lines;         assign text_lines = r_text_lines;
     reg [15:0] r_text_colour;                   assign text_colour = r_text_colour;
     
     always @ (*) begin

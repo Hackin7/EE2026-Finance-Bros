@@ -29,7 +29,7 @@ module menuCode#(
         input [12:0] oled_pixel_index, output [15:0] oled_pixel_data,
         // OLED Text Module
         output reg [15:0]       text_colour, 
-        output reg [8*15*5-1:0] text_lines,
+        output reg [8*15*7-1:0] text_lines,
         // 7 seg
         output [6:0] seg, output dp, output [3:0] an,
         
@@ -80,7 +80,7 @@ module menuCode#(
     //menu page
     reg [3:0] menu_button_state;
     wire [15:0] menu_text_colour;
-    wire [8*15*5-1:0] menu_text_lines;
+    wire [8*15*7-1:0] menu_text_lines;
     slaveMenuPage menuPage(
         //.clk(clk), .reset(menu_page_reset), .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
         //.pixel_index(oled_pixel_index), .oled_pixel_data(menu_page_pixel_data),
@@ -93,7 +93,7 @@ module menuCode#(
     wire [15:0] input_id_pixel_data;
 
     wire [15:0] slave_id_text_colour;
-    wire [8*15*5-1:0] slave_id_text_lines;
+    wire [8*15*7-1:0] slave_id_text_lines;
 
     wire [6:0] input_id_seg;
     wire input_id_dp;
@@ -170,7 +170,7 @@ module menuCode#(
     wire [31:0] trade_slave_balance; 
     
     wire [15:0] table_view_text_colour;
-    wire [8*15*5-1:0] table_view_text_lines;
+    wire [8*15*7-1:0] table_view_text_lines;
     slave_table_view table_view(
         .clk(clk), .reset(table_view_reset), 
         .pixel_index(oled_pixel_index), .oled_pixel_data(table_view_ready_pixel_data), 
@@ -194,7 +194,7 @@ module menuCode#(
         .seed(0), .data_in(packet_encrypted), .data_out(packet_decrypted)
     );
     wire [15:0] encrypted_text_colour;
-    wire [8*15*5-1:0] encrypted_text_lines;
+    wire [8*15*7-1:0] encrypted_text_lines;
     view_packet last_packet(
         /*.packet(state == STATE_VIEW_ENCRYPTED ? 
         packet_encrypted : packet),*/

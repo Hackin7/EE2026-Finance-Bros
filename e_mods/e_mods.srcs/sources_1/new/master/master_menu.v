@@ -28,7 +28,7 @@ module master_menu(
     input [7:0] ypos, 
     // OLED Text Module
     output [15:0]     text_colour, 
-    output [8*15*5-1:0] text_lines
+    output [8*15*7-1:0] text_lines
     );
     
     constants constant();
@@ -43,6 +43,8 @@ module master_menu(
         "VIEW ALL USERS ",
         "VIEW ALL STOCKS",
         "VIEW ALL GRAPHS",
+        "               ", 
+        "               ", 
         "               ", 
         "               "
     };
