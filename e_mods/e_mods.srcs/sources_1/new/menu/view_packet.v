@@ -34,14 +34,15 @@ module view_packet(
     );
     
     constants constant();
-    
+    wire [7:0] xpos = pixel_index % 96;
+    wire [7:0] ypos = pixel_index / 96;
     wire [7:0] price, quantity, stock_id, action, open_packet, close_packet;
     assign close_packet = unencrypted_packet[7:0];
-    assign price = unencrypted_packet[15:8];
-    assign quantity = unencrypted_packet[23:16];
-    assign stock_id = unencrypted_packet[31:24];
-    assign action = unencrypted_packet[47:40];
-    assign open_packet = unencrypted_packet[55:48];
+    assign price = unencrypted_packet[23:16];
+    assign quantity = unencrypted_packet[31:24];
+    assign stock_id = unencrypted_packet[47:40];
+    assign action = unencrypted_packet[55:48];
+    assign open_packet = unencrypted_packet[63:56];
     
     wire [8*12-1:0] unencrypted_string;
     binary_to_hex num_module(unencrypted_packet[55:8], unencrypted_string);
@@ -62,11 +63,14 @@ module view_packet(
         (xpos >= 49 ? constant.CYAN : constant.WHITE)
     );
     wire [8*15*5-1:0] text_lines_view = (encrypted_packet == 0) ? 
-                         {"STOCK ID   ", stock_num,
-                          "QUANTITY   ", quantity_num, 
-                          "PRICE      ", price_num,
-                          "ACTION     ", (action == 1 ? "BUY " : "SELL")}: 
-                         {"UNCRYPTED      ", unencrypted_string, "   ",
+                        {
+                            "STOCK ID   ", stock_num,
+                            "QUANTITY   ", quantity_num, 
+                            "PRICE      ", price_num,
+                            "ACTION     ", (action == 1 ? "BUY " :  action == 2 ? "SELL" : "----"), 
+                            "               "
+                        }: 
+                        {"UNCRYPTED      ", unencrypted_string, "   ",
                           "ENCRYPTED      ", encrypted_string, "   ",
                           "DECRYPTED      ", decrypted_string, "   "};
     
