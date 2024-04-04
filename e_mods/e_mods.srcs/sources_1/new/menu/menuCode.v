@@ -42,6 +42,7 @@ module menuCode#(
     wire [12:0] pixel_index = oled_pixel_index;
     reg [15:0] pixel_data = 16'b0;
     assign oled_pixel_data = pixel_data;
+    wire [7:0] xpos = oled_pixel_index % 96; wire [7:0] ypos = oled_pixel_index / 96;
     reg [6:0] control_seg;
     reg control_dp;
     reg [3:0] control_an;
@@ -153,7 +154,7 @@ module menuCode#(
     wire [8*4-1:0] self_status_state_string;
     text_num_val_mapping text_num1_module(self_status_state, self_status_state_string);
     wire [15:0] table_view_loading_pixel_data;
-    wire [7:0] xpos = oled_pixel_index % 96; wire [7:0] ypos = oled_pixel_index / 96;
+    
     text_dynamic #(12) table_view_loading(
         .x(xpos), .y(ypos), 
         .color(constant.WHITE), .background(constant.BLACK), 
@@ -178,21 +179,28 @@ module menuCode#(
         .text_lines(table_view_text_lines), .text_colour(table_view_text_colour)
     );
 
-
     wire [15:0] table_view_pixel_data = table_view_ready_pixel_data | (self_status_state != 3 ? table_view_loading_pixel_data : 0);
-    
-    wire [55:0] packet;
-    assign packet = {8'h5B, trade_slave_type, trade_slave_account_id, trade_slave_stock_id, trade_slave_qty, trade_slave_price, 8'h5D}; //current trade page
-    wire [55:0] packet_encrypted;
-    encryption encryptor(packet, trade_slave_account_id, packet_encrypted);
-    
-    
-    wire [15:0] packet_view_text_colour;
-    wire [8*15*5-1:0] packet_view_text_lines;
+   
+    wire [63:0] packet;
+    reg encrypt_reset;
+    reg [2:0] seed;
+    assign packet = uart_tx; //current trade page
+    wire [63:0] packet_encrypted;
+    wire [63:0] packet_decrypted;
+    encryption encryptor(.clk(clk), .reset(encrypt_reset), .action(0),
+    .seed(0), .data_in(packet), .data_out(packet_encrypted)
+    );
+    encryption decryptor(.clk(clk), .reset(encrypt_reset), .action(1),
+        .seed(0), .data_in(packet_encrypted), .data_out(packet_decrypted)
+    );
+    wire [15:0] encrypted_text_colour;
+    wire [8*15*5-1:0] encrypted_text_lines;
     view_packet last_packet(
-        .packet(state == STATE_VIEW_ENCRYPTED ? packet_encrypted : packet),
-        .pixel_index(oled_pixel_index), 
-        .text_colour(packet_view_text_colour), .text_lines(packet_view_text_lines)
+        /*.packet(state == STATE_VIEW_ENCRYPTED ? 
+        packet_encrypted : packet),
+        .pixel_index(oled_pixel_index), .packet_pixel_data(last_packet_pixel_data)*/
+        .unencrypted_packet(packet), .encrypted_packet(state == STATE_VIEW_ENCRYPTED ? packet_encrypted : 0), .decrypted_packet(state == STATE_VIEW_ENCRYPTED ? packet_decrypted : 0),
+        .text_colour(encrypted_text_colour), .text_lines(encrypted_text_lines)
     );
 
     // Logic
@@ -431,8 +439,8 @@ module menuCode#(
             control_dp <= 1;
             control_an <= ~4'b0;
         end else if (state == STATE_CURRENT_TRADE || state == STATE_VIEW_ENCRYPTED) begin
-            text_colour = packet_view_text_colour;
-            text_lines  = packet_view_text_lines;
+            text_colour = encrypted_text_colour;
+            text_lines  = encrypted_text_lines;
             pixel_data <= 0; //last_packet_pixel_data;
             control_seg <= ~7'b0;
             control_dp <= 1;

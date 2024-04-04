@@ -21,35 +21,56 @@
 
 
 module encryption(
-    input [55:0] data_in,
-    input [7:0] account_id,
-    output [55:0] data_out
+    input clk, reset, action,
+    input [2:0] seed,
+    input [63:0] data_in,
+    output [63:0] data_out
     );
-    reg [56:0] parsed;
-    assign data_out = parsed;
-    reg [7:0] bytes [7:0];
-    reg temp;
-    reg passkey [31:0];
+    wire [23:0] left = action == 0 ? encrypter(data_in[55:32], passkey[seed]) : decrypter(data_in[55:32], passkey[seed]);
+    wire [23:0] right = action == 0 ? encrypter(data_in[31:8], passkey[seed]) : decrypter(data_in[31:8], passkey[seed]);
+    wire [47:0] combined;
+    assign data_out = {data_in[63:56], combined, data_in[7:0]};
     integer i = 0;
+    reg [47:0] passkey [2:0];
+    reg [2:0] temp; //for bitshift
+    
+    function [23:0] encrypter(
+        input [23:0] plaintext,
+        input [47:0] passkey); begin
+        for (i = 0; i < 8; i = i + 1) begin
+        plaintext = plaintext ^ passkey[47:24]; //Bitwise XOR with left half of passkey
+        //left shift
+        temp = plaintext[23:21];
+        plaintext = plaintext << 3;
+        plaintext[2:0] = temp;
+        plaintext = plaintext ^ passkey[23:0]; //Bitwise XOR with right half of passkey
+        end
+        encrypter = plaintext;
+    end endfunction 
+    
+    function [27:0] decrypter(
+        input [27:0] ciphertext,
+        input [55:0] passkey
+        ); begin
+        for (i = 0; i < 8; i = i + 1) begin
+            ciphertext = ciphertext ^ passkey[23:0];
+            temp = ciphertext[2:0];
+            ciphertext = ciphertext >> 2;
+            ciphertext = ciphertext ^ passkey[47:25];
+        end
+        
+        decrypter = ciphertext;
+    end endfunction
+    assign combined = {left, right};
     initial begin
-        bytes[0] <= data_in[7:0];
-        bytes[1] <= data_in[15:8];
-        bytes[2] <= data_in[23:16];
-        bytes[3] <= data_in[31:24];
-        bytes[4] <= data_in[39:32];
-        bytes[5] <= data_in[47:40];
-        bytes[6] <= data_in[55:48];
-        bytes[7] <= 8'b0000_0000;
-        for (i = 0; i < 32; i = i + 1) begin
-        //Generate passkey based on account id
-            passkey[i] = (((i % 17 + (i / 5)) % 2 ) ^ account_id[i%8]) ? 1 : 0;
-        end
-        for (i = 0; i < 32; i = i + 1) begin
-            //flip the bits of the passkey that are 1
-            bytes[(2 * i / 8)][i % 8] = passkey[i] ? bytes[(2 * i / 8)][i % 8] : ~(bytes[(2 * i / 8)][i % 8]);
-        end
-        parsed = {bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6]};
+        passkey[0] = 48'b1100_0011_1010_0110_1001_0101_1100_0011_1010_0110_0011_1100;
+        passkey[1] = 48'b0000_1111_0101_1100_1010_0011_0000_1111_0101_1100_1111_0000;
+        passkey[2] = 48'b1101_0010_0100_1011_1110_0001_1101_0010_0100_1011_0010_1101;
     end
+
+
+    
+    
 /*
     reg [63:0] initial_permutation_table = {8'd58, 8'd50, 8'd42, 8'd34, 8'd26, 8'd18, 8'd10, 8'd2,
                                             8'd60, 8'd52, 8'd44, 8'd36, 8'd28, 8'd20, 8'd12, 8'd4,

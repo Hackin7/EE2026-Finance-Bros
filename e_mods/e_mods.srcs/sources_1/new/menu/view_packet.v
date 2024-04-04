@@ -21,7 +21,9 @@
 
 
 module view_packet(
-    input [47:0] packet,
+    input [63:0] unencrypted_packet,
+    input [63:0] encrypted_packet,
+    input [63:0] decrypted_packet,
     /*input [7:0] price, quantity, stock_id, 
     input action,*/
     input [12:0] pixel_index,
@@ -32,16 +34,21 @@ module view_packet(
     );
     
     constants constant();
-    reg [15:0] pixel_data;
-    assign packet_pixel_data = pixel_data;
-    reg [7:0] xpos, ypos;
     
-    wire [7:0] price, quantity, stock_id, action;
-    assign price = packet[15:8];
-    assign quantity = packet[23:16];
-    assign stock_id = packet[31:24];
-    assign action = packet[47:40];
-            
+    wire [7:0] price, quantity, stock_id, action, open_packet, close_packet;
+    assign close_packet = unencrypted_packet[7:0];
+    assign price = unencrypted_packet[15:8];
+    assign quantity = unencrypted_packet[23:16];
+    assign stock_id = unencrypted_packet[31:24];
+    assign action = unencrypted_packet[47:40];
+    assign open_packet = unencrypted_packet[55:48];
+    
+    wire [8*12-1:0] unencrypted_string;
+    binary_to_hex num_module(unencrypted_packet[55:8], unencrypted_string);
+    wire [8*12-1:0] encrypted_string;
+    binary_to_hex num_module2(encrypted_packet[55:8], encrypted_string);
+    wire [8*12-1:0] decrypted_string;
+    binary_to_hex num_module3(decrypted_packet[55:8], decrypted_string);
     wire [8*4-1:0] price_num;
     wire [15:0] numbers_pixel_data;
     text_num_val_mapping price_num_module(price, price_num);
@@ -54,15 +61,14 @@ module view_packet(
         action == 0 ? constant.RED : 
         (xpos >= 49 ? constant.CYAN : constant.WHITE)
     );
-
-    wire [8*15*5-1:0] text_lines_view = {
-        {"PRICE   ", ":", price_num,    "  "},
-        {"QUANTITY", ":", quantity_num, "  "},
-        {"STOCK ID", ":", stock_num,    "  "},
-        {"TYPE    ", ":", (action == 1 ? "BUY " : action == 2 ? "SELL" : "OTHER"), "  "}, 
-        "               "
-    };
-
+    wire [8*15*5-1:0] text_lines_view = (encrypted_packet == 0) ? 
+                         {"STOCK ID   ", stock_num,
+                          "QUANTITY   ", quantity_num, 
+                          "PRICE      ", price_num,
+                          "ACTION     ", (action == 1 ? "BUY " : "SELL")}: 
+                         {"UNCRYPTED      ", unencrypted_string, "   ",
+                          "ENCRYPTED      ", encrypted_string, "   ",
+                          "DECRYPTED      ", decrypted_string, "   "};
     
     assign text_lines = (
         action == 0 ? {
@@ -74,12 +80,4 @@ module view_packet(
         } : 
         text_lines_view
     );
-
-    always @ (*) begin
-        xpos <= pixel_index % 96;
-        ypos <= pixel_index / 96;
-        
-        pixel_data <= 0;
-    end
-    
 endmodule
