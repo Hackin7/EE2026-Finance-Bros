@@ -2,7 +2,7 @@ from PIL import Image
 import os
 
 # Load the image
-img = Image.open("image.png")
+img = Image.open("../graphics/stonks.png")
 
 # Resize the image if it's larger than 96x64 pixels
 if img.size[0] > 96 or img.size[1] > 64:

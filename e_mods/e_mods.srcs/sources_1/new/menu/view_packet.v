@@ -74,23 +74,23 @@ module view_packet(
         )
     );
     wire [8*15*7-1:0] text_lines_view = (encrypted_packet == 0) ? 
-                        {
-                            "STOCK ID   ", stock_num,
-                            "QUANTITY   ", quantity_num, 
-                            "PRICE      ", price_num,
-                            "ACTION     ", (action == 1 ? "BUY " :  action == 2 ? "SELL" : "----"), 
-                            "               ",
-                            "               ",
-                            "               "
-                        }: 
-                        { "UNCRYPTED      ", 
-                          unencrypted_string, "   ",
-                          "ENCRYPTED      ", 
-                          encrypted_string, "   ",
-                          "DECRYPTED      ", 
-                          decrypted_string, "   ",
-                          "               "
-                        };
+        {
+            "STOCK ID   ", stock_num,
+            "QUANTITY   ", quantity_num, 
+            "PRICE      ", price_num,
+            "ACTION     ", (action == 1 ? "BUY " :  action == 2 ? "SELL" : "----"), 
+            "               ",
+            "               ",
+            "               "
+        }: 
+        { "UNCRYPTED      ", 
+            unencrypted_string, "   ",
+            "ENCRYPTED      ", 
+            encrypted_string, "   ",
+            "DECRYPTED      ", 
+            decrypted_string, "   ",
+            "               "
+        };
     
     assign text_lines = (
         action == 0 ? {

@@ -8,7 +8,7 @@ This module handles the market code and all the inputs and outputs
 module trade_module_master #(
     parameter DBITS=8, UART_FRAME_SIZE=8, 
     INITIAL_ACCOUNTS='h01_00_00_00000fff___01_00_00_00000fff___01_00_00_00000fff,
-    INITIAL_STOCKS='h00_ff__00_ff__00_0f
+    INITIAL_STOCKS='h00_90__00_a0__00_a9
 )(
     // Control
     input reset, input clk_100MHz,

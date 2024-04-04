@@ -47,6 +47,7 @@ module module_master #(
     output uart2_rx_clear,
     // OLED
     input [12:0] oled_pixel_index, output reg [15:0] oled_pixel_data,
+    output reg [15:0] oled2_pixel_data,
     // OLED Text Module
     output [8*STR_LEN*7-1:0] text_lines, output [15:0] text_colour,
     
@@ -54,7 +55,28 @@ module module_master #(
     input [11:0] mouse_xpos,  mouse_ypos, input [3:0] mouse_zpos,
     input mouse_left_click, mouse_middle_click, mouse_right_click, mouse_new_event
 );
-
+    // 2nd OLED Text module ////////////////////////////////////////////////////////////////
+    //constants library
+    constants constant();
+    reg [7:0] xpos; reg [7:0] ypos;
+    /*
+    wire [15:0] text_pixel_data;
+    reg [8*STR_LEN*7-1:0] oled2_text_lines;
+    assign oled2_text_lines = text_lines;
+    text_dynamic_multiline #(STR_LEN) text_display_module(
+        .xpos(xpos), .ypos(ypos), 
+        .colour(text_colour), 
+        .line1(text_lines[8*STR_LEN*7-1:8*STR_LEN*6]), 
+        .line2(text_lines[8*STR_LEN*6-1:8*STR_LEN*5]), 
+        .line3(text_lines[8*STR_LEN*5-1:8*STR_LEN*4]), 
+        .line4(text_lines[8*STR_LEN*4-1:8*STR_LEN*3]), 
+        .line5(text_lines[8*STR_LEN*3-1:8*STR_LEN*2]), 
+        .line6(text_lines[8*STR_LEN*2-1:8*STR_LEN*1]), 
+        //.line7(text_lines[8*STR_LEN*1-1:8*STR_LEN*0]), 
+        .oled_pixel_data(text_pixel_data) 
+    );
+    */
+    /////////////////////////////////////////////////////////////////////////////////////
     parameter NO_STOCKS = 3;
     parameter BITWIDTH_NO_STOCKS = 2;
     parameter BITWIDTH_STOCKS_PRICE = 8;
@@ -69,10 +91,6 @@ module module_master #(
     parameter BITWIDTH_ACCT = BITWIDTH_ACCT_BALANCE + BITWIDTH_ACCT_STOCKS*NO_STOCKS;
     wire [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] accounts;
     
-    //constants library
-    constants constant();
-
-    reg [7:0] xpos; reg [7:0] ypos;
 
 
     trade_module_master 
@@ -321,10 +339,25 @@ module module_master #(
         xpos = oled_pixel_index % 96;
         ypos = oled_pixel_index / 96;
         case (state)
-        MENU_STATE: oled_pixel_data <= 0 ;
-        USER_TABLE_STATE: oled_pixel_data <= (ypos == 7) ? constant.GRAY : 0 ;
-        STOCK_TABLE_STATE: oled_pixel_data <= (ypos == 7) ? constant.GRAY : 0 ;
-        GRAPH_STATE: oled_pixel_data <= constant.YELLOW;
+        MENU_STATE: begin
+            oled_pixel_data <= 0 ;
+            oled2_pixel_data <= constant.YELLOW;
+        end
+        USER_TABLE_STATE: begin 
+            oled_pixel_data <= (ypos == 7) ? constant.GRAY : 0 ;
+            oled2_pixel_data <= constant.YELLOW;
+            //oled2_pixel_data <= text_pixel_data | (ypos == 7) ? constant.GRAY : 0 ;
+        end
+        STOCK_TABLE_STATE: begin 
+            oled_pixel_data <= (ypos == 7) ? constant.GRAY : 0 ;
+            oled2_pixel_data <= constant.YELLOW;
+            //oled2_pixel_data <= text_pixel_data | (ypos == 7) ? constant.GRAY : 0 ;
+            //oled2_text_lines <= 0;
+        end
+        GRAPH_STATE: begin 
+            oled_pixel_data <= constant.YELLOW;
+            oled2_pixel_data <= constant.YELLOW;
+        end
         endcase
     end
 endmodule

@@ -179,7 +179,11 @@ module menuCode#(
         .text_lines(table_view_text_lines), .text_colour(table_view_text_colour)
     );
 
-    wire [15:0] table_view_pixel_data = table_view_ready_pixel_data | (self_status_state != 3 ? table_view_loading_pixel_data : 0);
+    wire [15:0] table_view_pixel_data = (
+        table_view_ready_pixel_data | 
+        (self_status_state != 3 ? table_view_loading_pixel_data : 0) | 
+        ((ypos == 7) ? constant.GRAY : 0)
+    );
    
     wire [63:0] packet;
     reg encrypt_reset;

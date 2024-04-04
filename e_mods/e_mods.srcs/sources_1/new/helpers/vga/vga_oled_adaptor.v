@@ -26,6 +26,8 @@ module vga_oled_adaptor(
     inout [7:0] JB,
     output [12:0] pixel_index,
     input [15:0] pixel_data,
+    input separate_vga,
+    input [15:0] pixel_data2,
     output hsync,
     output vsync,
     output [11:0] rgb
@@ -76,7 +78,7 @@ assign oled_ypos = pixel_index / 96;
 // Store OLED display data in the buffer
 always @(posedge clk_6_25mhz) begin
     if (sending_pixels) begin
-        oled_buffer[pixel_index] <= pixel_data;
+        oled_buffer[pixel_index] <= separate_vga ? pixel_data2 : pixel_data;
     end
 end
 
