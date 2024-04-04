@@ -50,15 +50,30 @@ module view_packet(
     wire [8*4-1:0] stock_num;
     text_num_val_mapping stock_num_module(stock_id, stock_num);
     
-    assign text_colour = (xpos >= 49 ? constant.CYAN : constant.WHITE);
+    assign text_colour = (
+        action == 0 ? constant.RED : 
+        (xpos >= 49 ? constant.CYAN : constant.WHITE)
+    );
 
-    assign text_lines = {
+    wire [8*15*5-1:0] text_lines_view = {
         {"PRICE   ", ":", price_num,    "  "},
         {"QUANTITY", ":", quantity_num, "  "},
         {"STOCK ID", ":", stock_num,    "  "},
-        {"TYPE    ", ":", (action == 1 ? "BUY " : "SELL"), "  "}, 
+        {"TYPE    ", ":", (action == 1 ? "BUY " : action == 2 ? "SELL" : "OTHER"), "  "}, 
         "               "
     };
+
+    
+    assign text_lines = (
+        action == 0 ? {
+            "NOTHING IS     ",
+            "BEING SENT     ",
+            "               ",
+            "               ",
+            "               "
+        } : 
+        text_lines_view
+    );
 
     always @ (*) begin
         xpos <= pixel_index % 96;
