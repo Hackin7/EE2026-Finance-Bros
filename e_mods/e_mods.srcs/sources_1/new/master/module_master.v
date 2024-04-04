@@ -293,13 +293,26 @@ module module_master #(
             user_id <= user_id == 2 ? 0 : user_id + 1;
         end
     end endtask
+
     
+    task graph_handle(); begin
+        if (prev_btnC == 1 && btnC == 0) begin
+            state <= MENU_STATE;
+        end
+        if (prev_btnL == 1 && btnL == 0) begin
+            user_id <= user_id == 0 ? 2 : user_id - 1;
+        end
+        if (prev_btnR == 1 && btnR == 0) begin
+            user_id <= user_id == 2 ? 0 : user_id + 1;
+        end
+    end endtask
+
     always @ (posedge clk) begin
         case (state)
         MENU_STATE: state_menu_handle();
         USER_TABLE_STATE: btnC_handle();
         STOCK_TABLE_STATE: btnC_handle();
-        GRAPH_STATE: btnC_handle();
+        GRAPH_STATE: graph_handle();
         endcase
         button_control();
     end

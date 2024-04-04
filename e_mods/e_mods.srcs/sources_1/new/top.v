@@ -24,7 +24,12 @@ module top (
     output tx0, tx1, tx2,
     // OLED PMOD
     inout [7:0] JB,
-    inout mouse_ps2_clk, mouse_ps2_data
+    // Mouse
+    inout mouse_ps2_clk, mouse_ps2_data, 
+    // VGA
+    output hsync,
+    output vsync,
+    output [11:0] rgb
 );
     /*
     rx0 tx0 rx1 tx1 rx2 tx2
@@ -43,10 +48,20 @@ module top (
     wire [12:0] oled_pixel_index;
     wire [15:0] oled_pixel_data;
     // Module
-    Oled_Display display(
+    /*Oled_Display display(
         .clk(clk_6_25mhz), .reset(0), 
         .frame_begin(), .sending_pixels(), .sample_pixel(), .pixel_index(oled_pixel_index), .pixel_data(oled_pixel_data), 
-        .cs(Jx[0]), .sdin(Jx[1]), .sclk(Jx[3]), .d_cn(Jx[4]), .resn(Jx[5]), .vccen(Jx[6]), .pmoden(Jx[7])); //to SPI
+        .cs(Jx[0]), .sdin(Jx[1]), .sclk(Jx[3]), .d_cn(Jx[4]), .resn(Jx[5]), .vccen(Jx[6]), .pmoden(Jx[7])); //to SPI*/
+    vga_oled_adaptor adaptor(
+            .clk(clk),
+            .reset(0),
+            .JB(Jx),
+            .pixel_index(oled_pixel_index),
+            .pixel_data(oled_pixel_data),
+            .hsync(hsync),
+            .vsync(vsync),
+            .rgb(rgb)
+        );
     
     //// 3.A OLED Text Module //////////////////////////////////////
     parameter STR_LEN = 15;
@@ -206,8 +221,7 @@ module top (
         .oled_pixel_index(oled_pixel_index), .oled_pixel_data(master_oled_pixel_data),
         // OLED Text
         .text_lines(master_text_lines), .text_colour(master_text_colour)
-        /*
-        .mouse_xpos(mouse_xpos), .mouse_ypos(mouse_ypos), .mouse_zpos(mouse_zpos),
+        /*.mouse_xpos(mouse_xpos), .mouse_ypos(mouse_ypos), .mouse_zpos(mouse_zpos),
         .mouse_left_click(mouse_left_click), .mouse_middle_click(mouse_middle_click),
         .mouse_right_click(mouse_right_click), .mouse_new_event(mouse_new_event)*/
     );
@@ -241,12 +255,42 @@ module top (
         .uart_tx_trigger(slave_uart_tx_trigger),
         .uart_rx_clear(slave_uart_rx_clear)
     );
+    
+    //// Raycasting ////////////////////////////////////////////////////////////////////////////////////////////////
+    wire raycast_reset=0;
+    wire [15:0] raycast_led; 
+    wire [6:0] raycast_seg; 
+    wire raycast_dp;
+    wire [3:0] raycast_an;
+    wire raycast_uart_tx_trigger;
+    wire raycast_uart_rx_clear;
+    wire [UART_FRAME_SIZE*DBITS-1:0] raycast_uart_tx;
+    wire [15:0] raycast_oled_pixel_data;
+
+    wire [8*STR_LEN*7-1:0] raycast_text_lines;
+    wire [15:0] raycast_text_colour;
+    //assign text_colour = slave_text_colour;
+
+    raycasting raycast_module(
+        .clk(clk), .reset(raycast_reset) , .sw(sw),.led(raycast_led),
+        .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
+        .oled_pixel_index(oled_pixel_index), .oled_pixel_data(raycast_oled_pixel_data),
+        // OLED Text
+        .text_lines(raycast_text_lines), .text_colour(raycast_text_colour), 
+
+        .seg(raycast_seg), .dp(raycast_dp), .an(raycast_an)
         
+        /*,.uart_rx(uart_rx),
+        .uart_tx(raycast_uart_tx),
+        .uart_tx_trigger(raycast_uart_tx_trigger),
+        .uart_rx_clear(raycast_uart_rx_clear)*/
+    );
+
     //// Overall Control Logic ////////////////////////////////////////////////////////////////////////////////////
     // 4.E1
     wire enable_mode_master = sw[0];
     wire enable_mode_slave = sw[1];
-    
+    wire enable_mode_raycasting = sw[2];
 
     reg [15:0] r_led;             assign led = r_led;
     reg [6:0] r_seg;              assign seg = r_seg;
@@ -287,6 +331,19 @@ module top (
             r_text_lines = slave_text_lines;
             r_text_colour = slave_text_colour;
 
+        end else if (enable_mode_raycasting) begin
+            r_led = raycast_led;
+            r_seg = raycast_seg;
+            r_dp = raycast_dp;
+            r_an = raycast_an;
+
+            r_uart_tx = raycast_uart_tx;
+            r_uart_tx_trigger = raycast_uart_tx_trigger;
+            r_uart_rx_clear = raycast_uart_rx_clear;
+
+            r_oled_pixel_data = raycast_oled_pixel_data;
+            r_text_lines = 0; //raycast_text_lines;
+            r_text_colour = 0; //raycast_text_colour;
         end else begin
             r_led = {11'd0, rxUSB, rx0, rx1, rx2, rx0};
             r_seg = 7'b1111111;

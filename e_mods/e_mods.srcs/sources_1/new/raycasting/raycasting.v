@@ -11,61 +11,35 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module raycasting (
+module raycasting # (
+    parameter STR_LEN = 15
+)(
     // Control
-    input clk,
+    input reset, input clk,
     // LEDs, Switches, Buttons
     input btnC, btnU, btnL, btnR, btnD, input [15:0] sw, output [15:0] led,
     // 7 Segment Display
     output [6:0] seg, output dp, output [3:0] an,
-    // UART
-    input rx, output tx,
-    // OLED PMOD
-    inout [7:0] JB,
-    inout mouse_ps2_clk, mouse_ps2_data
-);
+    // OLED
+    input [12:0] oled_pixel_index, output [15:0] oled_pixel_data,
+    // OLED Text Module
+    output [8*STR_LEN*7-1:0] text_lines, output [15:0] text_colour,
     
+    // Mouse - NOT NEEDED
+    input [11:0] mouse_xpos,  mouse_ypos, input [3:0] mouse_zpos,
+    input mouse_left_click, mouse_middle_click, mouse_right_click, mouse_new_event
+);
     //// Setup ///////////////////////////////////////////////////////////////////////////////////////////////////////
     //// Clocks /////////////////////////////////////////////
-    wire clk_6_25mhz;
-    clk_counter #(8, 8, 32) clk6p25m (clk, clk_6_25mhz);
-
     wire clk_100hz;
     clk_counter #(2_000_000, 2_000_000, 32) clk100 (clk, clk_100hz);
     
     wire clk_10hz;
     clk_counter #(10_000_000, 10_000_000, 32) clk10 (clk, clk_10hz);
     //// 3.A OLED Setup //////////////////////////////////////
-    // Inputs
-    wire [7:0] Jx;
-    assign JB[7:0] = Jx;
-    // Outputs
-    wire [12:0] oled_pixel_index;
-    wire [15:0] oled_pixel_data;
     wire [7:0] oled_xpos;
     wire [7:0] oled_ypos;
-    // Module
-    Oled_Display display(
-        .clk(clk_6_25mhz), .reset(0), 
-        .frame_begin(), .sending_pixels(), .sample_pixel(), .pixel_index(oled_pixel_index), .pixel_data(oled_pixel_data), 
-        .cs(Jx[0]), .sdin(Jx[1]), .sclk(Jx[3]), .d_cn(Jx[4]), .resn(Jx[5]), .vccen(Jx[6]), .pmoden(Jx[7])); //to SPI
-    
-    //// 3.B Mouse Setup /////////////////////////////////////
-    /*wire mouse_reset; // cannot hardcode to 1 for some reason
-    wire [11:0] mouse_xpos;
-    wire [11:0] mouse_ypos;
-    wire [3:0] mouse_zpos;
-    wire mouse_left_click;
-    wire mouse_middle_click;
-    wire mouse_right_click;
-    wire mouse_new_event;
-    MouseCtl mouse(
-        .clk(clk), .rst(mouse_reset), .value(11'b0), .setx(0), .sety(0), .setmax_x(96), .setmax_y(64),
-        .xpos(mouse_xpos), .ypos(mouse_ypos), .zpos(mouse_zpos), 
-        .left(mouse_left_click), .middle(mouse_middle_click), .right(mouse_right_click), .new_event(mouse_new_event),
-        .ps2_clk(mouse_ps2_clk), .ps2_data(mouse_ps2_data)
-    );*/
-    
+
     /* Money animating -------------------------------------------*/
     reg [15:0] money_bill_img[255:0];
     initial begin
@@ -92,15 +66,11 @@ module raycasting (
     end
     endtask
     /// Raycasting ////////////////////////////////////////////////
-    
-    
     constants constant();
     parameter BW_INT=8;
     parameter BW_DEC=8;
     parameter BW = BW_INT + BW_DEC;
     parameter FOV = 60;
-    
-    
     
     reg signed [15:0] sin_array [65535:0]; // 2nd index is size of array, not bit
     reg signed [15:0] cos_array [65535:0];
@@ -136,7 +106,7 @@ module raycasting (
         8'b11111111,
         8'b10000001,
         8'b10000001,
-        8'b10000001,
+        8'b10001001,
         8'b10000001,
         8'b10000001,
         8'b10000001,
@@ -197,9 +167,9 @@ module raycasting (
     
     always @ (posedge clk) begin
         if (world_map[map_index] == 0) begin
-            raycast_x <= raycast_x + (dx>>2);
-            raycast_y <= raycast_y + (dy>>2);
-            raycast_step <= raycast_step + 2;
+            raycast_x <= raycast_x + (dx>>1);
+            raycast_y <= raycast_y + (dy>>1);
+            raycast_step <= raycast_step + 1;
             
             if (raycast_step > 50) begin
                 raycast_step <= 0;
@@ -251,7 +221,7 @@ module raycasting (
         if (oled_ypos >= 32) begin
             pixel_data = constant.GREEN;
         end
-        if (32 - (sw/distance) <= oled_ypos && oled_ypos <= 32 + ((sw)/distance)) begin
+        if (32 - (64/distance) <= oled_ypos && oled_ypos <= 32 + ((64)/distance)) begin
             pixel_data = {(5'b11111 / colour_factor), 5'b11111 / colour_factor, 5'b0};
         end
         
