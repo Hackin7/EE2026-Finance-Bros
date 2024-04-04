@@ -19,6 +19,7 @@ module trade_module_master #(
     output [UART_FRAME_SIZE*DBITS-1:0] uart_tx,
     output reg uart_tx_trigger=0,
     output reg uart_rx_clear=0,
+    output reg [UART_FRAME_SIZE*DBITS-1:0] prev_uart_rx,
 
     input [UART_FRAME_SIZE*DBITS-1:0] uart1_rx,
     output [UART_FRAME_SIZE*DBITS-1:0] uart1_tx,
@@ -271,10 +272,12 @@ module trade_module_master #(
         end else if (slave_type == parser.TYPE_BUY && !uart_operation) begin
             trade_approve_buy();
             uart_operation <= 1;
+            prev_uart_rx <= uart_rx;
             uart_rx_clear <= 1;
         end else if (slave_type == parser.TYPE_SELL && !uart_operation) begin
             trade_approve_sell();
             uart_operation <= 1;
+            prev_uart_rx <= uart_rx;
             uart_rx_clear <= 1;
         end else if (slave_type == parser.TYPE_GET_ACCOUNT_BALANCE) begin
             trade_return_account_balance();

@@ -73,8 +73,9 @@ module module_master #(
     constants constant();
 
     wire [7:0] xpos = oled_pixel_index % 96, ypos = oled_pixel_index / 96;
-    wire encrypted0 = sw[11], encrypted1 = sw[12], encrypted2 = sw[13];
+    wire encrypted0 = sw[5], encrypted1 = sw[6], encrypted2 = sw[7];
     wire decrypted0 = sw[8], decrypted1 = sw[9], decrypted2 = sw[10];
+    wire [63:0] prev_uart_rx;
 
     trade_module_master 
         #(
@@ -87,6 +88,7 @@ module module_master #(
         .uart_rx(uart_rx), .uart_tx(uart_tx),
         .uart_tx_trigger(uart_tx_trigger),
         .uart_rx_clear(uart_rx_clear),
+        .prev_uart_rx(prev_uart_rx),
         
         .uart1_rx(uart1_rx), .uart1_tx(uart1_tx),
         .uart1_tx_trigger(uart1_tx_trigger),
@@ -224,12 +226,12 @@ module module_master #(
         state == STOCK_TABLE_STATE ? "       ": 
         "               "
     };
-    
+
     wire [8*12-1:0] mapped_uart, mapped_decrypt;
     wire [63:0] decrypted_packet;
     encryption decryptor(.action(1),
-            .seed(0), .data_in(uart_rx), .data_out(decrypted_packet));
-    binary_to_hex uart_mapping(uart_rx[55:8], mapped_uart);
+            .seed(0), .data_in(prev_uart_rx), .data_out(decrypted_packet));
+    binary_to_hex uart_mapping(prev_uart_rx[55:8], mapped_uart);
     binary_to_hex decrypt_mapping(decrypted_packet[55:8], mapped_decrypt);
     wire [8*15*7-1:0] encrypted_text_lines = {"ENCRYPTED      ",
                                               mapped_uart, "   ",

@@ -22,7 +22,7 @@ module trade_packet_former#(
     parameter TYPE_RETURN_ACCOUNT_BALANCE = 8'd7;
     parameter TYPE_RETURN_ACCOUNT_STOCKS = 8'd8;
     
-    wire [63:0] packet;
+    wire [63:0] packet = {"[", type, account_id, stock_id, qty, price, 8'b0, "]"};
     wire [2:0] seed = account_id[2:0];
     wire [63:0] packet_encrypted;
     encryption encryptor(.action(0),
@@ -32,7 +32,7 @@ module trade_packet_former#(
     assign uart_tx = ( (type == TYPE_RETURN_ACCOUNT_BALANCE | type == TYPE_RETURN_ACCOUNT_STOCKS) ? 
         {"[", type, balance, 8'b0, "]"}:
         (encrypted ? packet_encrypted : 
-        {"[", type, account_id, stock_id, qty, price, 8'b0, "]"})
+         packet)
     );
     
 endmodule
