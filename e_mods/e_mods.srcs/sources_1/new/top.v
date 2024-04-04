@@ -24,7 +24,12 @@ module top (
     output tx0, tx1, tx2,
     // OLED PMOD
     inout [7:0] JB,
-    inout mouse_ps2_clk, mouse_ps2_data
+    // Mouse
+    inout mouse_ps2_clk, mouse_ps2_data, 
+    // VGA
+    output hsync,
+    output vsync,
+    output [11:0] rgb
 );
     /*
     rx0 tx0 rx1 tx1 rx2 tx2
@@ -42,12 +47,41 @@ module top (
     // Outputs
     wire [12:0] oled_pixel_index;
     wire [15:0] oled_pixel_data;
+    wire [15:0] oled2_pixel_data;
+    wire separate_vga = sw[4];
     // Module
-    Oled_Display display(
+    /*Oled_Display display(
         .clk(clk_6_25mhz), .reset(0), 
         .frame_begin(), .sending_pixels(), .sample_pixel(), .pixel_index(oled_pixel_index), .pixel_data(oled_pixel_data), 
-        .cs(Jx[0]), .sdin(Jx[1]), .sclk(Jx[3]), .d_cn(Jx[4]), .resn(Jx[5]), .vccen(Jx[6]), .pmoden(Jx[7])); //to SPI
+        .cs(Jx[0]), .sdin(Jx[1]), .sclk(Jx[3]), .d_cn(Jx[4]), .resn(Jx[5]), .vccen(Jx[6]), .pmoden(Jx[7])); //to SPI*/
+    vga_oled_adaptor adaptor(
+        .clk(clk),
+        .reset(0),
+        .JB(Jx),
+        .pixel_index(oled_pixel_index),
+        .pixel_data(oled_pixel_data),
+        .pixel_data2(oled2_pixel_data),
+        .separate_vga(separate_vga),
+        .hsync(hsync),
+        .vsync(vsync),
+        .rgb(rgb)
+    );
     
+    
+    /*
+    wire [12:0] oled2_pixel_index;
+    wire [15:0] oled2_pixel_data;
+    vga_oled_adaptor adaptor(
+        .clk(clk),
+        .reset(0),
+        .JB(),
+        .pixel_index(oled2_pixel_index),
+        .pixel_data(oled2_pixel_data),
+        .hsync(hsync),
+        .vsync(vsync),
+        .rgb(rgb)
+    );
+    */
     //// 3.A OLED Text Module //////////////////////////////////////
     parameter STR_LEN = 15;
     wire [7:0] oled_xpos = oled_pixel_index % 96;
@@ -70,6 +104,22 @@ module top (
         .oled_pixel_data(text_pixel_data) 
     );
 
+    // OLED Image Module
+    
+    wire clk_2s;
+    clk_counter #(200_000_000, 200_000_000, 32) clk2s (clk, clk_2s);
+    reg [15:0] image_memory [0:7679]; // Adjust size based on image dimensions (96x64 for example)
+    initial begin
+        $readmemh("stonks.mem", image_memory); // Load the first image data
+    end
+    wire [15:0] image_pixel_data = image_memory[oled_pixel_index];
+    /*wire [7:0] image_load = 0;
+    always @ (posedge clk) begin
+        if (image_load == 1) begin
+            $readmemh("stonks.mem", image_memory);
+        end
+    end*/
+    
     //// 3.B Mouse Setup /////////////////////////////////////
     /*
     wire mouse_reset; // cannot hardcode to 1 for some reason
@@ -162,11 +212,17 @@ module top (
     // Temporary intro page
     constants constant();
     wire [15:0] intro_text_colour = constant.WHITE;
+<<<<<<< HEAD
     wire [15*7*8-1:0]  intro_text_lines = {
         "EE2026         ",
         "FINANCE BROS   ",
+=======
+    wire [15*6*8-1:0]  intro_text_lines = {
+        " EE2026        ",
+        " FINANCE BROS  ",
+>>>>>>> 621cd37cd6273c848552d3c9d4c57ab5594119ed
         "               ",
-        "TRUST US BRO   ", 
+        " TRUST US BRO  ", 
         "               ", 
         "               ",
         "               "
@@ -205,10 +261,10 @@ module top (
         .uart2_rx_clear(uart2_rx_clear),
         // OLED
         .oled_pixel_index(oled_pixel_index), .oled_pixel_data(master_oled_pixel_data),
+        .oled2_pixel_data(oled2_pixel_data),
         // OLED Text
         .text_lines(master_text_lines), .text_colour(master_text_colour)
-        /*
-        .mouse_xpos(mouse_xpos), .mouse_ypos(mouse_ypos), .mouse_zpos(mouse_zpos),
+        /*.mouse_xpos(mouse_xpos), .mouse_ypos(mouse_ypos), .mouse_zpos(mouse_zpos),
         .mouse_left_click(mouse_left_click), .mouse_middle_click(mouse_middle_click),
         .mouse_right_click(mouse_right_click), .mouse_new_event(mouse_new_event)*/
     );
@@ -242,12 +298,42 @@ module top (
         .uart_tx_trigger(slave_uart_tx_trigger),
         .uart_rx_clear(slave_uart_rx_clear)
     );
+    
+    //// Raycasting ////////////////////////////////////////////////////////////////////////////////////////////////
+    wire raycast_reset=0;
+    wire [15:0] raycast_led; 
+    wire [6:0] raycast_seg; 
+    wire raycast_dp;
+    wire [3:0] raycast_an;
+    wire raycast_uart_tx_trigger;
+    wire raycast_uart_rx_clear;
+    wire [UART_FRAME_SIZE*DBITS-1:0] raycast_uart_tx;
+    wire [15:0] raycast_oled_pixel_data;
+
+    wire [8*STR_LEN*7-1:0] raycast_text_lines;
+    wire [15:0] raycast_text_colour;
+    //assign text_colour = slave_text_colour;
+
+    raycasting raycast_module(
+        .clk(clk), .reset(raycast_reset) , .sw(sw),.led(raycast_led),
+        .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
+        .oled_pixel_index(oled_pixel_index), .oled_pixel_data(raycast_oled_pixel_data),
+        // OLED Text
+        .text_lines(raycast_text_lines), .text_colour(raycast_text_colour), 
+
+        .seg(raycast_seg), .dp(raycast_dp), .an(raycast_an)
         
+        /*,.uart_rx(uart_rx),
+        .uart_tx(raycast_uart_tx),
+        .uart_tx_trigger(raycast_uart_tx_trigger),
+        .uart_rx_clear(raycast_uart_rx_clear)*/
+    );
+
     //// Overall Control Logic ////////////////////////////////////////////////////////////////////////////////////
     // 4.E1
     wire enable_mode_master = sw[0];
     wire enable_mode_slave = sw[1];
-    
+    wire enable_mode_raycasting = sw[2];
 
     reg [15:0] r_led;                           assign led = r_led;
     reg [6:0] r_seg;                            assign seg = r_seg;
@@ -288,6 +374,32 @@ module top (
             r_text_lines = slave_text_lines;
             r_text_colour = slave_text_colour;
 
+        end else if (enable_mode_raycasting) begin
+            r_led = raycast_led;
+            r_seg = raycast_seg;
+            r_dp = raycast_dp;
+            r_an = raycast_an;
+
+            r_uart_tx = raycast_uart_tx;
+            r_uart_tx_trigger = raycast_uart_tx_trigger;
+            r_uart_rx_clear = raycast_uart_rx_clear;
+
+            r_oled_pixel_data = raycast_oled_pixel_data;
+            r_text_lines = 0;  //raycast_text_lines;
+            r_text_colour = 0; //raycast_text_colour;
+        /*end else if (1) begin
+            r_led = {11'd0, rxUSB, rx0, rx1, rx2, rx0};
+            r_seg = 7'b1111111;
+            r_dp = 1;
+            r_an = 4'b1111;
+
+            r_uart_tx = 1'b0;
+            r_uart_tx_trigger = 1'b0;
+            r_uart_rx_clear = 1'b0;
+
+            r_oled_pixel_data = image_pixel_data;
+            r_text_lines = intro_text_lines; 
+            r_text_colour = intro_text_colour;*/
         end else begin
             r_led = {11'd0, rxUSB, rx0, rx1, rx2, rx0};
             r_seg = 7'b1111111;
@@ -298,7 +410,8 @@ module top (
             r_uart_tx_trigger = 1'b0;
             r_uart_rx_clear = 1'b0;
 
-            r_oled_pixel_data = 16'h0;
+            //r_oled_pixel_data = 16'h0;
+            r_oled_pixel_data = image_pixel_data;
             r_text_lines = intro_text_lines; 
             r_text_colour = intro_text_colour;
         end

@@ -47,6 +47,7 @@ module module_master #(
     output uart2_rx_clear,
     // OLED
     input [12:0] oled_pixel_index, output reg [15:0] oled_pixel_data,
+    output reg [15:0] oled2_pixel_data,
     // OLED Text Module
     output [8*STR_LEN*7-1:0] text_lines, output [15:0] text_colour,
     
@@ -54,7 +55,28 @@ module module_master #(
     input [11:0] mouse_xpos,  mouse_ypos, input [3:0] mouse_zpos,
     input mouse_left_click, mouse_middle_click, mouse_right_click, mouse_new_event
 );
-
+    // 2nd OLED Text module ////////////////////////////////////////////////////////////////
+    //constants library
+    constants constant();
+    reg [7:0] xpos; reg [7:0] ypos;
+    /*
+    wire [15:0] text_pixel_data;
+    reg [8*STR_LEN*7-1:0] oled2_text_lines;
+    assign oled2_text_lines = text_lines;
+    text_dynamic_multiline #(STR_LEN) text_display_module(
+        .xpos(xpos), .ypos(ypos), 
+        .colour(text_colour), 
+        .line1(text_lines[8*STR_LEN*7-1:8*STR_LEN*6]), 
+        .line2(text_lines[8*STR_LEN*6-1:8*STR_LEN*5]), 
+        .line3(text_lines[8*STR_LEN*5-1:8*STR_LEN*4]), 
+        .line4(text_lines[8*STR_LEN*4-1:8*STR_LEN*3]), 
+        .line5(text_lines[8*STR_LEN*3-1:8*STR_LEN*2]), 
+        .line6(text_lines[8*STR_LEN*2-1:8*STR_LEN*1]), 
+        //.line7(text_lines[8*STR_LEN*1-1:8*STR_LEN*0]), 
+        .oled_pixel_data(text_pixel_data) 
+    );
+    */
+    /////////////////////////////////////////////////////////////////////////////////////
     parameter NO_STOCKS = 3;
     parameter BITWIDTH_NO_STOCKS = 2;
     parameter BITWIDTH_STOCKS_PRICE = 8;
@@ -69,6 +91,7 @@ module module_master #(
     parameter BITWIDTH_ACCT = BITWIDTH_ACCT_BALANCE + BITWIDTH_ACCT_STOCKS*NO_STOCKS;
     wire [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] accounts;
     
+<<<<<<< HEAD
     //constants library
     constants constant();
 
@@ -76,6 +99,9 @@ module module_master #(
     wire encrypted0 = sw[5], encrypted1 = sw[6], encrypted2 = sw[7];
     wire decrypted0 = sw[8], decrypted1 = sw[9], decrypted2 = sw[10];
     wire [63:0] prev_uart_rx;
+=======
+
+>>>>>>> 621cd37cd6273c848552d3c9d4c57ab5594119ed
 
     trade_module_master 
         #(
@@ -311,16 +337,61 @@ module module_master #(
     end endtask
 
     
+    task graph_handle(); begin
+        if (prev_btnC == 1 && btnC == 0) begin
+            state <= MENU_STATE;
+        end
+        if (prev_btnL == 1 && btnL == 0) begin
+            user_id <= user_id == 0 ? 2 : user_id - 1;
+        end
+        if (prev_btnR == 1 && btnR == 0) begin
+            user_id <= user_id == 2 ? 0 : user_id + 1;
+        end
+    end endtask
+
     always @ (posedge clk) begin
         case (state)
         MENU_STATE: state_menu_handle();
         USER_TABLE_STATE: btnC_handle();
         STOCK_TABLE_STATE: btnC_handle();
+<<<<<<< HEAD
         GRAPH_STATE: btnC_handle();
         ENCRYPTED_STATE: btnC_handle();
         default: btnC_handle();
         endcase
         button_control();
     end
+=======
+        GRAPH_STATE: graph_handle();
+        endcase
+        button_control();
+    end
+    
+    always @ (*) begin
+        xpos = oled_pixel_index % 96;
+        ypos = oled_pixel_index / 96;
+        case (state)
+        MENU_STATE: begin
+            oled_pixel_data <= 0 ;
+            oled2_pixel_data <= constant.YELLOW;
+        end
+        USER_TABLE_STATE: begin 
+            oled_pixel_data <= (ypos == 7) ? constant.GRAY : 0 ;
+            oled2_pixel_data <= constant.YELLOW;
+            //oled2_pixel_data <= text_pixel_data | (ypos == 7) ? constant.GRAY : 0 ;
+        end
+        STOCK_TABLE_STATE: begin 
+            oled_pixel_data <= (ypos == 7) ? constant.GRAY : 0 ;
+            oled2_pixel_data <= constant.YELLOW;
+            //oled2_pixel_data <= text_pixel_data | (ypos == 7) ? constant.GRAY : 0 ;
+            //oled2_text_lines <= 0;
+        end
+        GRAPH_STATE: begin 
+            oled_pixel_data <= constant.YELLOW;
+            oled2_pixel_data <= constant.YELLOW;
+        end
+        endcase
+    end
+>>>>>>> 621cd37cd6273c848552d3c9d4c57ab5594119ed
 endmodule
 

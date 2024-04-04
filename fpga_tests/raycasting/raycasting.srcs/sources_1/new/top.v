@@ -77,7 +77,7 @@ module top (
     reg [7:0] money_y = 0;
     
     always @ (posedge clk_money) begin
-        money_y <= money_y == 64 ? 5 : money_y + 1;
+        money_y <= money_y == 64 ? -60 : money_y + 1;
     end
     
     task display_bill(input [7:0] x, input[7:0] y);
@@ -143,7 +143,6 @@ module top (
         8'b11111111
     };
     
-    
     reg [12:0] prev_pixel_index = 0;
     reg [BW-1:0] distance=9;
     
@@ -196,10 +195,10 @@ module top (
     );
     
     always @ (posedge clk) begin
-        if (world_map[map_index] == 0) begin
-            raycast_x <= raycast_x + (dx>>2);
-            raycast_y <= raycast_y + (dy>>2);
-            raycast_step <= raycast_step + 2;
+        if (world_map[map_index] == 0) begin // && world_map_blue[map_index]==0) begin
+            raycast_x <= raycast_x + (dx>>1);
+            raycast_y <= raycast_y + (dy>>1);
+            raycast_step <= raycast_step + 1;
             
             if (raycast_step > 50) begin
                 raycast_step <= 0;
@@ -241,7 +240,7 @@ module top (
     reg [15:0] pixel_data = 16'h0000;
     assign oled_pixel_data = pixel_data;
     
-    wire [7:0] colour_factor = (1 + distance/(1<<2));
+    wire [7:0] colour_factor = (1 + distance/(4)); // 8 for accurate lighting
     assign oled_xpos = oled_pixel_index % 96;
     assign oled_ypos = oled_pixel_index / 96;
     always @(*) begin
@@ -252,7 +251,13 @@ module top (
             pixel_data = constant.GREEN;
         end
         if (32 - (sw/distance) <= oled_ypos && oled_ypos <= 32 + ((sw)/distance)) begin
-            pixel_data = {(5'b11111 / colour_factor), 5'b11111 / colour_factor, 5'b0};
+            pixel_data = {(5'b11111 / colour_factor), 6'b11111 / colour_factor, 5'b0};
+            /*
+            if (world_map_blue[map_index] != 0) begin
+                pixel_data = {(5'b0 / colour_factor), 6'b0 / colour_factor, 5'b11111};
+            end else if (world_map[map_index] != 0) begin
+                pixel_data = {(5'b11111 / colour_factor), 6'b11111 / colour_factor, 5'b0};
+            end*/
         end
         
         
@@ -261,7 +266,6 @@ module top (
         display_bill(36, money_y+20);
         display_bill(53, money_y);
         display_bill(70, money_y+30);
-
     end
 endmodule
 
