@@ -212,15 +212,9 @@ module top (
     // Temporary intro page
     constants constant();
     wire [15:0] intro_text_colour = constant.WHITE;
-<<<<<<< HEAD
     wire [15*7*8-1:0]  intro_text_lines = {
         "EE2026         ",
         "FINANCE BROS   ",
-=======
-    wire [15*6*8-1:0]  intro_text_lines = {
-        " EE2026        ",
-        " FINANCE BROS  ",
->>>>>>> 621cd37cd6273c848552d3c9d4c57ab5594119ed
         "               ",
         " TRUST US BRO  ", 
         "               ", 

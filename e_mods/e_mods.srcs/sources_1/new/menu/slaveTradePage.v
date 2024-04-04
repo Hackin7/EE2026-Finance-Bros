@@ -26,7 +26,9 @@ module slaveTradePage(
     // LEDs, Switches, Buttons
     input btnC, btnU, btnL, btnR, btnD, input [15:0] sw,
     input [12:0] pixel_index,
-    output [15:0] oled_pixel_data,
+    //output [15:0] oled_pixel_data,
+    output [8*15*7-1:0] text_lines,
+    output [15:0] text_colour,
     output [6:0] seg, output dp, output [3:0] an,
     output reg [31:0] stock_id, 
     output reg [31:0] price, 
@@ -138,29 +140,12 @@ module slaveTradePage(
     );
     /* OLED Screen ---------------------------------------------*/
     reg [15:0] pixel_data = 16'b0;
-    assign oled_pixel_data = pixel_data;
-
-    function is_border(
-        input [7:0] x, input [7:0] y,
-        input [7:0] x_start, input [7:0] y_start,
-        input [7:0] x_len, input [7:0] y_len
-   );
-        reg long_range, short_range;
-             
-        begin
-            long_range = (((x_start <= x) && (x < x_start + x_len + 1)) && 
-                ((y_start == y)||((y_start + y_len) == y)));
-            short_range = ( ((x_start == x)||(x_start + x_len == x)) && 
-                (y_start <= y && y < y_start + y_len));
-            is_border = long_range || short_range;
-        end
-    endfunction
-        
-    reg [7:0] xpos; reg [7:0] ypos;
+    //assign oled_pixel_data = pixel_data;
+    wire [7:0] xpos = pixel_index % 96, ypos = pixel_index / 96;
 
     // Text module
         
-    wire [15:0] setter_pixel_data;
+ /*   wire [15:0] setter_pixel_data;
     text_dynamic #(12) setter_module(
             .x(xpos), .y(ypos), 
             .color(constant.WHITE), .background(constant.BLACK), 
@@ -168,11 +153,30 @@ module slaveTradePage(
                 (pageNo == 2 ? "SET QUANTITY" : "SET STOCK ID")
             ), .offset(0), //12*6), 
             .repeat_flag(0), .x_pos_offset(0), .pixel_data(setter_pixel_data));
-            
+            */
     wire [8*4-1:0] num_string;
     wire [15:0] num_string_pixel_data;
     text_num_val_mapping price_num_module(key_in_value, num_string);
-    text_dynamic #(4) text_num_display_module(
+
+    wire [8*15*7-1:0] add_trade_lines = {pageNo == 0 ? "SET STOCK ID   " : (
+                                         pageNo == 1 ? "SET PRICE      " : (
+                                         pageNo == 2 ? "SET QUANTITY   " : 
+                                                       "ACTION         ")),
+                                         pageNo == 3 ? (buy_sell_state ? "BUY " : "SELL" ) : num_string, "           ",
+                                        (pageNo == 0 ? (key_in_value == 0000 ? "AAPL" :
+                                                        key_in_value == 0001 ? "GOOG" :
+                                                                               "BABA"):
+                                                                               "    "), "           ",
+                                                                                    "               ",
+                                                                                    "               ",
+                                                                                    "               ",
+                                                                                    "               "};
+    assign text_lines = add_trade_lines;
+    wire [15:0] add_trade_text_colour = (10 <= ypos && ypos < 20) ? constant.CYAN : constant.WHITE;
+    assign text_colour = add_trade_text_colour;
+
+
+/*    text_dynamic #(4) text_num_display_module(
         .x(xpos), .y(ypos), 
         .color(constant.CYAN), .background(constant.BLACK), 
         .text_y_pos(10), .string(num_string), .offset(0), 
@@ -198,12 +202,12 @@ module slaveTradePage(
             .color(buy_sell_state == 1 ? constant.RED : constant.WHITE), .background(constant.BLACK), 
             .text_y_pos(10), .string("SELL"), .offset(0), //12*6), 
             .repeat_flag(0), .x_pos_offset(20), .pixel_data(sell_pixel_data));
-            
+            */
     always @ (*) begin
         xpos = pixel_index % 96;
         ypos = pixel_index / 96;
-        pixel_data <= pageNo < 3 ? (setter_pixel_data | num_string_pixel_data) :
-        (select_pixel_data | buy_pixel_data | sell_pixel_data);
+        /*pixel_data <= pageNo < 3 ? (setter_pixel_data | num_string_pixel_data) :
+        (select_pixel_data | buy_pixel_data | sell_pixel_data); */
         /* --------------------------------------------------------------------------*/
     end
     
