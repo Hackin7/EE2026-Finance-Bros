@@ -6,20 +6,26 @@ module graphs(
     input signed [31:0] x_point1, y_point1, x_point2, y_point2, x_point3, y_point3,
     input signed [31:0] x_point4, y_point4, x_point5, y_point5, x_point6, y_point6,
     input signed [31:0] x_point7, y_point7, x_point8, y_point8, x_point9, y_point9,
-    input [11:0] mouse_xpos, input [11:0] mouse_ypos
+    input [11:0] mouse_xpos, input [11:0] mouse_ypos,  mouse_left_click, mouse_right_click
+
 );
    
 
-
     wire signed [31:0] slope1, slope2, slope3, slope4, slope5, slope6;
     wire signed [31:0] intercept1, intercept2, intercept3, intercept4, intercept5, intercept6;
+    reg [3:0] zoom_level = 1;
 
- 
     reg [6:0] x;
     reg [5:0] y; 
     
     reg [6:0] cursor_x;
     reg [5:0] cursor_y;
+    
+    reg [11:0] prev_cursor_x,  prev_cursor_y;
+    reg [11:0] delta_x,  delta_y;
+    
+    reg [6:0]scaled_x;
+    reg [5:0]scaled_y;
 
 
     parameter scale = 128;
@@ -44,17 +50,49 @@ module graphs(
 
     reg [15:0] calc_y1, calc_y2, calc_y3, calc_y4, calc_y5, calc_y6;
     
+    always @(posedge clk) begin
+        if (mouse_right_click && zoom_level == 1) begin
+            zoom_level <= 2;
+            
+            prev_cursor_x <= mouse_xpos[11:3];
+            prev_cursor_y <= mouse_ypos[11:3];
+        end
+        else if (mouse_left_click && zoom_level == 2) begin
+            zoom_level <= 1;
+        end
+        
+    end
+    
+   always @(*) begin
+         
+        if (zoom_level == 1) begin
+            
+            x <= oled_pixel_index % 96; 
+            y <= oled_pixel_index / 96;
+        end
+        else if (zoom_level == 2 && cursor_x < 48 && cursor_y < 32) begin
+           x <= ((oled_pixel_index % 96) / 2); 
+           y <= ((oled_pixel_index / 96) / 2); 
+        end else if (zoom_level == 2 && cursor_x < 48 && cursor_y >= 32) begin 
+             x <= ((oled_pixel_index % 96) / 2); 
+             y <= ((oled_pixel_index / 96) / 2) + 32; 
+        end else if (zoom_level == 2 && cursor_x >= 48 && cursor_y < 32) begin 
+             x <= ((oled_pixel_index % 96) / 2) + 48; 
+             y <= ((oled_pixel_index / 96) / 2);
+        end else if (zoom_level == 2 && cursor_x >= 48 && cursor_y >= 32) begin 
+             x <= ((oled_pixel_index % 96) / 2) + 48; 
+             y <= ((oled_pixel_index / 96) / 2) + 32;
+       
+       end
 
-
-    always @(*) begin
-        x <= oled_pixel_index % 96; 
-        y <= oled_pixel_index / 96; 
+        
+       
 
         oled_pixel_data <= 16'h0000; 
 
         // Drawing axes
-        if (x == 10) oled_pixel_data <= 16'hFFFF; // White
-        if (y == 56) oled_pixel_data <= 16'hFFFF; // White
+        if (x == 10) oled_pixel_data <= 16'hFFFF; 
+        if (y == 56) oled_pixel_data <= 16'hFFFF; 
         
 
         // Drawing the first graph in green
@@ -72,16 +110,21 @@ module graphs(
         drawLine(x_point8, y_point8, x_point9, y_point9, slope6, intercept6, 16'hF800); 
         highlightPoints(x_point7, y_point7, x_point8, y_point8, x_point9, y_point9, 16'hFA10); 
         
-         cursor_x <= mouse_xpos[11:3]; // Scaling 
-         cursor_y <= mouse_ypos[11:3]; 
-              
+        cursor_x <= mouse_xpos[11:3]; // Scaling 
+        cursor_y <= mouse_ypos[11:3];
+               
+               
+ 
+         
         
+
+
         
         if (x == cursor_x && y == cursor_y) begin
-            oled_pixel_data <= 16'hFFFF; // White color for cursor
+            oled_pixel_data <= 16'hFFFF; // White
         end
 
-    end
+        end
 
   
     task drawLine;
@@ -96,6 +139,7 @@ module graphs(
     endtask
 
     
+        
     task highlightPoints;
         input [6:0] x1, y1, x2, y2, x3, y3;
         input [15:0] pointColor;
