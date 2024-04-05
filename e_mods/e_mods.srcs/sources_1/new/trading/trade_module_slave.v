@@ -34,6 +34,7 @@ module trade_module_slave #(
     input [7:0] tx_qty,
     input [7:0] tx_price,
     input trigger,
+    input encrypted, decrypted,
     output reg [7:0] send_status=0,
     output [31:0] balance, 
     output [7:0] stock1,
@@ -91,7 +92,7 @@ module trade_module_slave #(
         ) former (
         .type(tx_type), .account_id(tx_account_id), 
         .stock_id(tx_stock_id), .qty(tx_qty), 
-        .price(tx_price), .uart_tx(uart_tx)
+        .price(tx_price), .uart_tx(uart_tx), .encrypted(encrypted)
     );
 
     task fsm_uart_send();
@@ -124,6 +125,7 @@ module trade_module_slave #(
             .DBITS(DBITS), 
             .UART_FRAME_SIZE(UART_FRAME_SIZE)
         ) parser (
+        .encrypted(decrypted),
         .uart_rx(uart_rx), 
         .type(packet_type), 
         .account_id(packet_account_id), 

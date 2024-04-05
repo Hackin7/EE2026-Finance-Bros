@@ -9,7 +9,8 @@ module trade_packet_former#(
     input [7:0] qty,
     input [7:0] price,
     input [32-1:0] balance,
-    output  [UART_FRAME_SIZE*DBITS-1:0] uart_tx
+    input encrypted,
+    output [UART_FRAME_SIZE*DBITS-1:0] uart_tx
 );
     parameter TYPE_INVALID = 8'd0;
     parameter TYPE_BUY = 8'd1;
@@ -18,13 +19,20 @@ module trade_packet_former#(
     parameter TYPE_FAIL = 8'd4;
     parameter TYPE_GET_ACCOUNT_BALANCE = 8'd5;
     parameter TYPE_GET_ACCOUNT_STOCKS = 8'd6; // Hardcode all stocks
-
     parameter TYPE_RETURN_ACCOUNT_BALANCE = 8'd7;
     parameter TYPE_RETURN_ACCOUNT_STOCKS = 8'd8;
+    
+    wire [63:0] packet = {"[", type, account_id, stock_id, qty, price, 8'b0, "]"};
+    wire [2:0] seed = account_id[2:0];
+    wire [63:0] packet_encrypted;
+    encryption encryptor(.action(0),
+    .seed(seed), .data_in(packet), .data_out(packet_encrypted)
+    );
+    
     assign uart_tx = ( (type == TYPE_RETURN_ACCOUNT_BALANCE | type == TYPE_RETURN_ACCOUNT_STOCKS) ? 
-        {"[", type, balance, 8'b0, "]"}
-        :
-        {"[", type, account_id, stock_id, qty, price, 8'b0, "]"}
+        {"[", type, balance, 8'b0, "]"}:
+        (encrypted ? packet_encrypted : 
+         packet)
     );
     
 endmodule
@@ -33,6 +41,8 @@ module trade_packet_parser#(
     parameter DBITS=8, UART_FRAME_SIZE=8
 )(
     input  [UART_FRAME_SIZE*DBITS-1:0] uart_rx,
+    input encrypted,
+    input [7:0] seed,
     output [7:0] type, // Not working properly
     output [7:0] account_id,
     output [7:0] stock_id,
@@ -52,15 +62,19 @@ module trade_packet_parser#(
     parameter TYPE_RETURN_ACCOUNT_BALANCE = 8'd7;
     parameter TYPE_RETURN_ACCOUNT_STOCKS = 8'd8;
 
+    wire [63:0] packet_decrypted;
+    encryption decryptor(.action(1),
+        .seed(seed), .data_in(uart_rx), .data_out(packet_decrypted));
+        
     wire [7:0] char_first = uart_rx[63:56];
     wire [7:0] char_last = uart_rx[7:0];
-    wire [7:0] char_type = uart_rx[55:48];
-    assign type = (char_first == "[" && char_last == "]") ? char_type : TYPE_INVALID;
+    wire [7:0] char_type = encrypted ? packet_decrypted[55:48] : uart_rx[55:48];
     
-    assign account_id = uart_rx[DBITS*6-1:DBITS*5];
-    assign stock_id = uart_rx[DBITS*5-1:DBITS*4];
-    assign qty = uart_rx[DBITS*4-1:DBITS*3];
-    assign price = uart_rx[DBITS*3-1:DBITS*2];
-    assign balance = uart_rx[DBITS*6-1:DBITS*2];
+    assign type = (char_first == "[" && char_last == "]") ? char_type : TYPE_INVALID;
+    assign account_id = encrypted ? packet_decrypted[DBITS*6-1:DBITS*5] : uart_rx[DBITS*6-1:DBITS*5];
+    assign stock_id =   encrypted ? packet_decrypted[DBITS*5-1:DBITS*4] : uart_rx[DBITS*5-1:DBITS*4];
+    assign qty =        encrypted ? packet_decrypted[DBITS*4-1:DBITS*3] : uart_rx[DBITS*4-1:DBITS*3];
+    assign price =      encrypted ? packet_decrypted[DBITS*3-1:DBITS*2] : uart_rx[DBITS*3-1:DBITS*2];
+    assign balance =    encrypted ? packet_decrypted[DBITS*6-1:DBITS*2] : uart_rx[DBITS*6-1:DBITS*2];
 endmodule
 

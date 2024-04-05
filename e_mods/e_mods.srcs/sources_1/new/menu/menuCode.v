@@ -63,7 +63,9 @@ module menuCode#(
     /* Pages --------------------------------------------------------------------*/
     //page one
     reg pageOne_reset = 1;
-    wire [15:0] pageOne_pixel_data;
+    //wire [15:0] pageOne_pixel_data;
+    wire [15:0] add_trade_text_colour;
+    wire [8*15*7-1:0] add_trade_text_lines;
     wire [6:0] pageOne_seg;
     wire pageOne_dp;
     wire [3:0] pageOne_an;
@@ -72,9 +74,10 @@ module menuCode#(
     wire pageOne_done;
     slaveTradePage pageOne(
         .clk(clk), .reset(pageOne_reset), .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
-        .sw(sw), .pixel_index(oled_pixel_index), .oled_pixel_data(pageOne_pixel_data),
+        .sw(sw), .pixel_index(oled_pixel_index), //.oled_pixel_data(pageOne_pixel_data),
         .seg(pageOne_seg), .dp(pageOne_dp), .an(pageOne_an),
-        .stock_id(stock_id), .price(price), .quantity(qty), .action(action), .done(pageOne_done)
+        .stock_id(stock_id), .price(price), .quantity(qty), .action(action), .done(pageOne_done),
+        .text_lines(add_trade_text_lines), .text_colour(add_trade_text_colour)
     );
     
     //menu page
@@ -123,6 +126,8 @@ module menuCode#(
     wire [7:0] trade_slave_get_stock1;
     wire [7:0] trade_slave_get_stock2;
     wire [7:0] trade_slave_get_stock3;
+    wire encrypted = sw[7];
+    wire decrypted = sw[8];
     trade_module_slave 
         #(
          .DBITS(DBITS), .UART_FRAME_SIZE(UART_FRAME_SIZE), .RX_TIMEOUT(100_000_000)
@@ -145,7 +150,7 @@ module menuCode#(
         .stock1(trade_slave_get_stock1),
         .stock2(trade_slave_get_stock2),
         .stock3(trade_slave_get_stock3),
-        .led(led), .sw(sw)
+        .led(led), .sw(sw), .encrypted(encrypted), .decrypted(decrypted)
     );
     
     /* More Pages --------------------------------------------------------------------*/
@@ -185,27 +190,37 @@ module menuCode#(
         ((ypos == 7) ? constant.GRAY : 0)
     );
    
-    wire [63:0] packet;
-    reg encrypt_reset;
     reg [2:0] seed;
-    assign packet = uart_tx; //current trade page
-    wire [63:0] packet_encrypted;
-    wire [63:0] packet_decrypted;
-    encryption encryptor(.clk(clk), .reset(encrypt_reset), .action(0),
-    .seed(0), .data_in(packet), .data_out(packet_encrypted)
-    );
-    encryption decryptor(.clk(clk), .reset(encrypt_reset), .action(1),
-        .seed(0), .data_in(packet_encrypted), .data_out(packet_decrypted)
-    );
-    wire [15:0] encrypted_text_colour;
-    wire [8*15*7-1:0] encrypted_text_lines;
+    wire [63:0] packet = {8'h5B, trade_slave_type, trade_slave_account_id, trade_slave_stock_id, trade_slave_qty, trade_slave_price, 8'h0 ,8'h5D}; //current trade page
+    wire [15:0] current_trade_text_colour;
+    wire [8*15*7-1:0] current_trade_text_lines;
     view_packet last_packet(
         /*.packet(state == STATE_VIEW_ENCRYPTED ? 
         packet_encrypted : packet),*/
         .pixel_index(oled_pixel_index), //.packet_pixel_data(last_packet_pixel_data)
-        .unencrypted_packet(packet), .encrypted_packet(state == STATE_VIEW_ENCRYPTED ? packet_encrypted : 0), .decrypted_packet(state == STATE_VIEW_ENCRYPTED ? packet_decrypted : 0),
-        .text_colour(encrypted_text_colour), .text_lines(encrypted_text_lines)
+        .packet(packet),
+        .text_colour(current_trade_text_colour), .text_lines(current_trade_text_lines)
     );
+    
+    wire [63:0] encrypted_packet, decrypted_packet;
+    encryption encryptor(.action(0),
+    .seed(0), .data_in(packet), .data_out(encrypted_packet)
+    );
+    encryption decryptor(.action(1),
+        .seed(0), .data_in(encrypted_packet), .data_out(decrypted_packet)
+    );
+    wire [8*12-1:0] encrypted_string, decrypted_string, packet_string;
+    binary_to_hex encrypted_converter(encrypted_packet[55:8], encrypted_string);
+    binary_to_hex decrypted_converter(decrypted_packet[55:8], decrypted_string);
+    binary_to_hex uncrypted_converter(packet[55:8], packet_string);
+    wire [8*15*7-1:0] encryption_text_lines = {"UNCRYPTED      ", 
+                                               packet_string, "   ",
+                                               "ENCRYPTED      ",
+                                               encrypted_string, "   ",
+                                               "DECRYPTED      ",
+                                               decrypted_string, "   ",
+                                               "               "
+    };
 
     // Logic
     parameter TRADE_SUCCESS_SHOW = 200_000_000; // 2 seconds
@@ -422,9 +437,9 @@ module menuCode#(
             control_dp <= 1;
             control_an <= ~4'b0;
         end else if (state == STATE_ADD_TRADE) begin
-            text_colour = 0;
-            text_lines  = 0;
-            pixel_data <= pageOne_pixel_data;
+            text_colour = add_trade_text_colour;
+            text_lines  = add_trade_text_lines;
+            pixel_data <= 0; //pageOne_pixel_data;
             control_seg <= pageOne_seg;
             control_dp <= pageOne_dp;
             control_an <= pageOne_an;
@@ -442,10 +457,15 @@ module menuCode#(
             control_seg = ~7'b0;
             control_dp = 1;
             control_an = ~4'b0;
-        end else if (state == STATE_CURRENT_TRADE || state == STATE_VIEW_ENCRYPTED) begin
-            text_colour = encrypted_text_colour;
-            text_lines  = encrypted_text_lines;
-            pixel_data <= 0; //last_packet_pixel_data;
+        end else if (state == STATE_CURRENT_TRADE) begin
+            text_colour = current_trade_text_colour;
+            text_lines  = current_trade_text_lines;
+            control_seg <= ~7'b0;
+            control_dp <= 1;
+            control_an <= ~4'b0;
+        end else if (state == STATE_VIEW_ENCRYPTED) begin
+            text_lines = encryption_text_lines;
+            text_colour = constant.WHITE;
             control_seg <= ~7'b0;
             control_dp <= 1;
             control_an <= ~4'b0;
