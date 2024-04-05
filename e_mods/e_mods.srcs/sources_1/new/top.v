@@ -234,7 +234,6 @@ module top (
 
     wire [8*STR_LEN*7-1:0] master_text_lines;
     wire [15:0] master_text_colour;
-    //assign text_colour = master_text_colour;
 
     module_master master_module(
         .reset(master_reset), .clk(clk),
@@ -272,10 +271,8 @@ module top (
     wire slave_uart_rx_clear;
     wire [UART_FRAME_SIZE*DBITS-1:0] slave_uart_tx;
     wire [15:0] slave_oled_pixel_data;
-
     wire [8*STR_LEN*7-1:0] slave_text_lines;
     wire [15:0] slave_text_colour;
-    //assign text_colour = slave_text_colour;
 
     menuCode slave_menu(
         .clk(clk), .reset(slave_reset) , .sw(sw),.led(slave_led),
@@ -302,10 +299,8 @@ module top (
     wire raycast_uart_rx_clear;
     wire [UART_FRAME_SIZE*DBITS-1:0] raycast_uart_tx;
     wire [15:0] raycast_oled_pixel_data;
-
     wire [8*STR_LEN*7-1:0] raycast_text_lines;
     wire [15:0] raycast_text_colour;
-    //assign text_colour = slave_text_colour;
 
     raycasting raycast_module(
         .clk(clk), .reset(raycast_reset) , .sw(sw),.led(raycast_led),
