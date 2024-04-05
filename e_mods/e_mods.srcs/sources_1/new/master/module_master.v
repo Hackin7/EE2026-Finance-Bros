@@ -281,7 +281,7 @@ module module_master #(
     
     function [7:0] normalize_y(input [7:0] val);
     begin
-        normalize_y = (val - 155) * 10;
+        normalize_y = (val - 155) * 2;
     end
     endfunction
 
@@ -290,9 +290,10 @@ module module_master #(
     wire [8*TIME-1:0] line_green = line_baba;
 
     wire [15:0] graph_pixel_data;
+    reg [2:0] current_graph_stock = 0;
     graphs graph_module(
         .reset(0), .clk(clk), 
-        .btnC(btnC), .btnU(btnU), .btnL(btnL), .btnR(btnR), .btnD(btnD), 
+        .btnC(btnC), .btnU(btnU), .btnL(btnL), .btnR(btnR), .btnD(btnD), .stock_id(current_graph_stock),
         //.sw(sw), .led(led), .seg(seg), .dp(dp), .an(an),
         .oled_pixel_index(oled_pixel_index), .oled_pixel_data(graph_pixel_data),
         // Line 1
@@ -300,13 +301,19 @@ module module_master #(
         .x_point2(60), .y_point2(normalize_y(line_green[15:8 ])), 
         .x_point3(85), .y_point3(normalize_y(line_green[7:0])),
         // Line 1
-        .x_point4(35), .y_point4(normalize_y(line_blue[23:16])), 
-        .x_point5(60), .y_point5(normalize_y(line_blue[15:8 ])), 
-        .x_point6(85), .y_point6(normalize_y(line_blue[ 7:0 ])),
+        //.x_point4(35), 
+        .y_point4(normalize_y(line_blue[23:16])), 
+        //.x_point5(60),
+        .y_point5(normalize_y(line_blue[15:8 ])), 
+        //.x_point6(85), 
+        .y_point6(normalize_y(line_blue[ 7:0 ])),
         // Line 1
-        .x_point7(35), .y_point7(normalize_y(line_red[23:16])), 
-        .x_point8(60), .y_point8(normalize_y(line_red[15:8 ])), 
-        .x_point9(85), .y_point9(normalize_y(line_red[ 7:0 ])),
+        //.x_point7(35), 
+        .y_point7(normalize_y(line_red[23:16])), 
+        //.x_point8(60), 
+        .y_point8(normalize_y(line_red[15:8 ])), 
+        //.x_point9(85), 
+        .y_point9(normalize_y(line_red[ 7:0 ])),
 
         .mouse_xpos(mouse_xpos), .mouse_ypos(mouse_ypos), 
         .mouse_left_click(mouse_left_click), .mouse_right_click(mouse_right_click)
@@ -370,6 +377,7 @@ module module_master #(
     task btnC_handle(); begin
         if (prev_btnC == 1 && btnC == 0) begin
             state <= MENU_STATE;
+            user_id <= 0;
         end
         if (prev_btnL == 1 && btnL == 0) begin
             user_id <= user_id == 0 ? 2 : user_id - 1;
@@ -383,12 +391,13 @@ module module_master #(
     task graph_handle(); begin
         if (prev_btnC == 1 && btnC == 0) begin
             state <= MENU_STATE;
+            current_graph_stock <= 0;
         end
         if (prev_btnL == 1 && btnL == 0) begin
-            user_id <= user_id == 0 ? 2 : user_id - 1;
+            current_graph_stock <= current_graph_stock == 0 ? 2 : current_graph_stock - 1;
         end
         if (prev_btnR == 1 && btnR == 0) begin
-            user_id <= user_id == 2 ? 0 : user_id + 1;
+            current_graph_stock <= current_graph_stock == 2 ? 0 : current_graph_stock + 1;
         end
     end endtask
 
