@@ -314,7 +314,6 @@ module module_master #(
         .y_point8(normalize_y(line_red[15:8 ])), 
         //.x_point9(85), 
         .y_point9(normalize_y(line_red[ 7:0 ])),
-
         .mouse_xpos(mouse_xpos), .mouse_ypos(mouse_ypos), 
         .mouse_left_click(mouse_left_click), .mouse_right_click(mouse_right_click)
     );

@@ -17,40 +17,52 @@ module graphs(
     
     reg [6:0] cursor_x;
     reg [5:0] cursor_y;
+    
+    reg prev_btnC=0, prev_btnU=0, prev_btnL=0, prev_btnR=0, prev_btnD=0;
+        
+//    reg debounce = 0;
+//    reg [31:0] debounce_timer = 0;
+//    parameter DEBOUNCE_TIME = 30_000_000; // 100ms
 
     reg [3:0] zoom_level = 1;
 
     parameter scale = 128;
-
-    // First graph slopes and intercepts
-    assign slope1 = stock_id == 0 ? ((y_point2 - y_point1) * scale) / (x_point2 - x_point1) : (
-                    stock_id == 1 ? ((y_point5 - y_point4) * scale) / (x_point2 - x_point1) : //was slope3
-                                    ((y_point8 - y_point7) * scale) / (x_point2 - x_point1)); //was slope5
-    assign slope2 = stock_id == 0 ? ((y_point3 - y_point2) * scale) / (x_point3 - x_point2) : (
-                    stock_id == 1 ? ((y_point6 - y_point5) * scale) / (x_point3 - x_point2) : //was slope4
-                                    ((y_point9 - y_point8) * scale) / (x_point3 - x_point2)); //was slope6
-    assign intercept1 = stock_id == 0 ? (y_point1 * scale - (slope1 * x_point1)) : (
-                        stock_id == 1 ? (y_point4 * scale - (slope1 * x_point1)) : //was intercept3
-                                        (y_point7 * scale - (slope1 * x_point1))); //was intercept5
-    assign intercept2 = stock_id == 0 ? (y_point2 * scale - (slope2 * x_point2)) : (
-                        stock_id == 1 ? (y_point5 * scale - (slope2 * x_point2)) : //was intercept4
-                                        (y_point8 * scale - (slope2 * x_point2))); //was intercept6
-                                        
-    always @(posedge clk) begin
-        if (mouse_right_click) begin
-            zoom_level <= zoom_level == 3 ? zoom_level : zoom_level + 1;
-        end else if (mouse_left_click) begin
-            zoom_level <= zoom_level == 1 ? zoom_level : zoom_level - 1;
-        end
-    end
   
     always @(*) begin
-        oled_pixel_data <= 16'h0000; 
-
-        // Drawing axes
-        if (x == 10) oled_pixel_data <= 16'hFFFF; // White
-        if (y == 56) oled_pixel_data <= 16'hFFFF; // White
-        
+        oled_pixel_data <= 16'h0000;
+        if (zoom_level == 1) begin
+            x <= oled_pixel_index % 96; 
+            y <= oled_pixel_index / 96;
+        end
+        else if (zoom_level == 2 && cursor_x < 24 && cursor_y < 16) begin
+           x <= ((oled_pixel_index % 96) / 2); 
+           y <= ((oled_pixel_index / 96) / 2); 
+        end else if (zoom_level == 2 && cursor_x < 24 && cursor_y >= 16 && cursor_y < 48) begin 
+           x <= ((oled_pixel_index % 96) / 2); 
+           y <= ((oled_pixel_index / 96) / 2) + 16; 
+        end else if (zoom_level == 2 && cursor_x < 24 && cursor_y >= 48) begin  
+           x <= ((oled_pixel_index % 96) / 2); 
+           y <= ((oled_pixel_index / 96) / 2) + 32; 
+        end else if (zoom_level == 2 && cursor_x >= 24 && cursor_x < 72 && cursor_y < 16) begin  
+           x <= ((oled_pixel_index % 96) / 2) + 24; 
+           y <= ((oled_pixel_index / 96) / 2);
+        end else if (zoom_level == 2 && cursor_x >= 72 && cursor_y < 16) begin 
+           x <= ((oled_pixel_index % 96) / 2) + 48; 
+           y <= ((oled_pixel_index / 96) / 2);
+        end else if (zoom_level == 2 && cursor_x >= 24 && cursor_x < 72 && cursor_y >= 16 && cursor_y < 48) begin 
+           x <= ((oled_pixel_index % 96) / 2) + 24; 
+           y <= ((oled_pixel_index / 96) / 2) + 16;
+        end else if (zoom_level == 2 && cursor_x >= 24 && cursor_x < 72 && cursor_y >= 48) begin 
+           x <= ((oled_pixel_index % 96) / 2) + 24; 
+           y <= ((oled_pixel_index / 96) / 2) + 32; 
+        end else if (zoom_level == 2 && cursor_x >= 72 && cursor_y >= 16 && cursor_y < 48) begin   
+           x <= ((oled_pixel_index % 96) / 2) + 48; 
+           y <= ((oled_pixel_index / 96) / 2) + 16;             
+        end else if (zoom_level == 2 && cursor_x >= 72 && cursor_y >= 48) begin 
+           x <= ((oled_pixel_index % 96) / 2) + 48; 
+           y <= ((oled_pixel_index / 96) / 2) + 32;
+        end
+      
         drawLine(
             x_point1,
             stock_id == 0 ? y_point1 : (stock_id == 1 ? y_point4 : y_point7), 
@@ -95,9 +107,28 @@ module graphs(
         if (x == cursor_x && y == cursor_y) begin
             oled_pixel_data <= 16'hFFFF; // White color for cursor
         end
-
     end
-
+         
+    assign slope1 = stock_id == 0 ? ((y_point2 - y_point1) * scale) / (x_point2 - x_point1) : (
+                    stock_id == 1 ? ((y_point5 - y_point4) * scale) / (x_point2 - x_point1) : //was slope3
+                                    ((y_point8 - y_point7) * scale) / (x_point2 - x_point1)); //was slope5
+    assign slope2 = stock_id == 0 ? ((y_point3 - y_point2) * scale) / (x_point3 - x_point2) : (
+                    stock_id == 1 ? ((y_point6 - y_point5) * scale) / (x_point3 - x_point2) : //was slope4
+                                    ((y_point9 - y_point8) * scale) / (x_point3 - x_point2)); //was slope6
+    assign intercept1 = stock_id == 0 ? (y_point1 * scale - (slope1 * x_point1)) : (
+                        stock_id == 1 ? (y_point4 * scale - (slope1 * x_point1)) : //was intercept3
+                                        (y_point7 * scale - (slope1 * x_point1))); //was intercept5
+    assign intercept2 = stock_id == 0 ? (y_point2 * scale - (slope2 * x_point2)) : (
+                        stock_id == 1 ? (y_point5 * scale - (slope2 * x_point2)) : //was intercept4
+                                        (y_point8 * scale - (slope2 * x_point2))); //was intercept6
+                                        
+    always @(posedge clk) begin
+        if (mouse_right_click) begin
+            zoom_level <= zoom_level == 3 ? zoom_level : zoom_level + 1;
+        end else if (mouse_left_click) begin
+            zoom_level <= zoom_level == 1 ? zoom_level : zoom_level - 1;
+        end
+    end
   
     task drawLine;
         input [31:0] x_start, y_start, x_end, y_end;
@@ -109,7 +140,6 @@ module graphs(
             end
         end
     endtask
-
     
     task highlightPoints;
         input [6:0] x1, y1, x2, y2, x3, y3;
@@ -120,5 +150,5 @@ module graphs(
             end
         end
     endtask
-
 endmodule
+
