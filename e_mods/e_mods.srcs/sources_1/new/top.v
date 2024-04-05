@@ -121,7 +121,6 @@ module top (
     end*/
     
     //// 3.B Mouse Setup /////////////////////////////////////
-    /*
     wire mouse_reset; // cannot hardcode to 1 for some reason
     wire [11:0] mouse_xpos;
     wire [11:0] mouse_ypos;
@@ -135,7 +134,7 @@ module top (
         .xpos(mouse_xpos), .ypos(mouse_ypos), .zpos(mouse_zpos), 
         .left(mouse_left_click), .middle(mouse_middle_click), .right(mouse_right_click), .new_event(mouse_new_event),
         .ps2_clk(mouse_ps2_clk), .ps2_data(mouse_ps2_data)
-    );*/
+    );
     //// UART //////////////////////////////////////////////
     //// UART //////////////////////////////////////////////
     // wire rx; //assign rx = sw[15] ? rxUSB : rx0; // Receive data to board - send from PC/ master
@@ -256,10 +255,10 @@ module top (
         .oled_pixel_index(oled_pixel_index), .oled_pixel_data(master_oled_pixel_data),
         .oled2_pixel_data(oled2_pixel_data),
         // OLED Text
-        .text_lines(master_text_lines), .text_colour(master_text_colour)
-        /*.mouse_xpos(mouse_xpos), .mouse_ypos(mouse_ypos), .mouse_zpos(mouse_zpos),
+        .text_lines(master_text_lines), .text_colour(master_text_colour),
+        .mouse_xpos(mouse_xpos), .mouse_ypos(mouse_ypos), .mouse_zpos(mouse_zpos),
         .mouse_left_click(mouse_left_click), .mouse_middle_click(mouse_middle_click),
-        .mouse_right_click(mouse_right_click), .mouse_new_event(mouse_new_event)*/
+        .mouse_right_click(mouse_right_click), .mouse_new_event(mouse_new_event)
     );
 
     //// Slave //////////////////////////////////////////////////////////////////////////////////////////////////
