@@ -260,7 +260,7 @@ module module_master #(
     
     function [7:0] normalize_y(input [7:0] val);
     begin
-        normalize_y = (val - 155) * 5;
+        normalize_y = (val - 155) * 10;
     end
     endfunction
 
@@ -270,7 +270,7 @@ module module_master #(
 
     wire [15:0] graph_pixel_data;
     graphs graph_module(
-        .reset(0), .clk(0), 
+        .reset(0), .clk(clk), 
         .btnC(btnC), .btnU(btnU), .btnL(btnL), .btnR(btnR), .btnD(btnD), 
         //.sw(sw), .led(led), .seg(seg), .dp(dp), .an(an),
         .oled_pixel_index(oled_pixel_index), .oled_pixel_data(graph_pixel_data),
@@ -287,7 +287,9 @@ module module_master #(
         .x_point8(60), .y_point8(normalize_y(line_red[15:8 ])), 
         .x_point9(85), .y_point9(normalize_y(line_red[ 7:0 ])),
 
-        .mouse_xpos(mouse_xpos), .mouse_ypos(mouse_ypos)
+        .mouse_xpos(mouse_xpos), .mouse_ypos(mouse_ypos),
+        .mouse_left_click(mouse_left_click),
+        .mouse_right_click(mouse_right_click)
     );
 
     /* --- OLED -------------------------------------------------------------------- */
