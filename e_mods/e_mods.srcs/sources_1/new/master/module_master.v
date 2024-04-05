@@ -58,11 +58,12 @@ module module_master #(
     // 2nd OLED Text module ////////////////////////////////////////////////////////////////
     //constants library
     constants constant();
-    reg [7:0] xpos; reg [7:0] ypos;
-    /*
+
+    wire [7:0] xpos = oled_pixel_index % 96, ypos = oled_pixel_index / 96;
+
     wire [15:0] text_pixel_data;
     reg [8*STR_LEN*7-1:0] oled2_text_lines;
-    assign oled2_text_lines = text_lines;
+    /*assign oled2_text_lines = text_lines;
     text_dynamic_multiline #(STR_LEN) text_display_module(
         .xpos(xpos), .ypos(ypos), 
         .colour(text_colour), 
@@ -91,10 +92,6 @@ module module_master #(
     parameter BITWIDTH_ACCT = BITWIDTH_ACCT_BALANCE + BITWIDTH_ACCT_STOCKS*NO_STOCKS;
     wire [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] accounts;
     
-    //constants library
-    constants constant();
-
-    wire [7:0] xpos = oled_pixel_index % 96, ypos = oled_pixel_index / 96;
     wire encrypted0 = sw[5], encrypted1 = sw[6], encrypted2 = sw[7];
     wire decrypted0 = sw[8], decrypted1 = sw[9], decrypted2 = sw[10];
     wire [63:0] prev_uart_rx;

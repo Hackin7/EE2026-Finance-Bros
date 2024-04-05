@@ -68,9 +68,8 @@ module slaveTradePage(
             key_in_value <= 0;
             pageNo <= 3;
         end else if (pageNo == 3) begin
-            pageNo <= 4;
-        end else if (pageNo == 4) begin
             action <= buy_sell_state;
+            pageNo <= 4;
             done <= 1;
         end else begin
             pageNo <= 0;
@@ -162,7 +161,7 @@ module slaveTradePage(
                                          pageNo == 1 ? "SET PRICE      " : (
                                          pageNo == 2 ? "SET QUANTITY   " : 
                                                        "ACTION         ")),
-                                         pageNo == 3 ? (buy_sell_state ? "BUY " : "SELL" ) : num_string, "           ",
+                                         pageNo == 3 ? (buy_sell_state ? "BUY " : "SELL" ) : (pageNo < 3 ? num_string : "    "), "           ",
                                         (pageNo == 0 ? (key_in_value == 0000 ? "AAPL" :
                                                         key_in_value == 0001 ? "GOOG" :
                                                                                "BABA"):
@@ -203,12 +202,5 @@ module slaveTradePage(
             .text_y_pos(10), .string("SELL"), .offset(0), //12*6), 
             .repeat_flag(0), .x_pos_offset(20), .pixel_data(sell_pixel_data));
             */
-    always @ (*) begin
-        xpos = pixel_index % 96;
-        ypos = pixel_index / 96;
-        /*pixel_data <= pageNo < 3 ? (setter_pixel_data | num_string_pixel_data) :
-        (select_pixel_data | buy_pixel_data | sell_pixel_data); */
-        /* --------------------------------------------------------------------------*/
-    end
-    
+
 endmodule
