@@ -62,7 +62,7 @@ module module_master #(
     wire [7:0] xpos = oled_pixel_index % 96, ypos = oled_pixel_index / 96;
 
     wire [15:0] text_pixel_data;
-    reg [8*STR_LEN*7-1:0] oled2_text_lines;
+    //reg [8*STR_LEN*7-1:0] oled2_text_lines;
     /*assign oled2_text_lines = text_lines;
     text_dynamic_multiline #(STR_LEN) text_display_module(
         .xpos(xpos), .ypos(ypos), 
@@ -262,6 +262,56 @@ module module_master #(
     wire [15:0] encrypted_text_colour = constant.WHITE;
     
     
+    /* --- Data Change ------------------------------------------------------------- */
+    parameter TIME = 3;
+    reg [8*TIME-1:0] line_appl = 'ha9_a9_a9;
+    reg [8*TIME-1:0] line_goog  = 'ha0_a0_a0;
+    reg [8*TIME-1:0] line_baba  = 'h90_90_90;
+
+    always @ (posedge clk) begin
+        if (line_appl[7:0] != stock_get_price(0) |
+            line_goog[7:0] != stock_get_price(1) | 
+            line_baba[7:0] != stock_get_price(2)
+        ) begin 
+            line_appl <= line_appl << 8 | stock_get_price(0);
+            line_goog <= line_goog << 8 | stock_get_price(1);
+            line_baba <= line_baba << 8 | stock_get_price(2);
+        end
+    end
+    
+    function [7:0] normalize_y(input [7:0] val);
+    begin
+        normalize_y = (val - 155) * 10;
+    end
+    endfunction
+
+    wire [8*TIME-1:0] line_red   = line_appl;
+    wire [8*TIME-1:0] line_blue  = line_goog;
+    wire [8*TIME-1:0] line_green = line_baba;
+
+    wire [15:0] graph_pixel_data;
+    graphs graph_module(
+        .reset(0), .clk(clk), 
+        .btnC(btnC), .btnU(btnU), .btnL(btnL), .btnR(btnR), .btnD(btnD), 
+        //.sw(sw), .led(led), .seg(seg), .dp(dp), .an(an),
+        .oled_pixel_index(oled_pixel_index), .oled_pixel_data(graph_pixel_data),
+        // Line 1
+        .x_point1(35), .y_point1(normalize_y(line_green[23:16])), 
+        .x_point2(60), .y_point2(normalize_y(line_green[15:8 ])), 
+        .x_point3(85), .y_point3(normalize_y(line_green[7:0])),
+        // Line 1
+        .x_point4(35), .y_point4(normalize_y(line_blue[23:16])), 
+        .x_point5(60), .y_point5(normalize_y(line_blue[15:8 ])), 
+        .x_point6(85), .y_point6(normalize_y(line_blue[ 7:0 ])),
+        // Line 1
+        .x_point7(35), .y_point7(normalize_y(line_red[23:16])), 
+        .x_point8(60), .y_point8(normalize_y(line_red[15:8 ])), 
+        .x_point9(85), .y_point9(normalize_y(line_red[ 7:0 ])),
+
+        .mouse_xpos(mouse_xpos), .mouse_ypos(mouse_ypos), 
+        .mouse_left_click(mouse_left_click), .mouse_right_click(mouse_right_click)
+    );
+
     /* --- OLED ------------------------------------------------------------- */
     reg master_menu_reset;
     reg [2:0] master_button_state;
@@ -276,9 +326,9 @@ module module_master #(
         .button_state(master_button_state)
     );
         
-    assign text_lines = state == MENU_STATE ? menu_text_lines : 
+    assign text_lines = state == GRAPH_STATE ? "" : (state == MENU_STATE ? menu_text_lines : 
                        (state == ENCRYPTED_STATE ? encrypted_text_lines :
-                       {line1, line2, line3, line4, line5,"               ", "               "});
+                       {line1, line2, line3, line4, line5,"               ", "               "}));
     assign text_colour = state == MENU_STATE ? menu_text_colour : 
                         (state == ENCRYPTED_STATE ? encrypted_text_colour :
                         (xpos >= 49 ? constant.CYAN : constant.WHITE));
@@ -344,12 +394,29 @@ module module_master #(
 
     always @ (posedge clk) begin
         case (state)
-        MENU_STATE: state_menu_handle();
-        USER_TABLE_STATE: btnC_handle();
-        STOCK_TABLE_STATE: btnC_handle();
-        GRAPH_STATE: btnC_handle();
-        ENCRYPTED_STATE: btnC_handle();
-        default: btnC_handle();
+        MENU_STATE: begin 
+        oled_pixel_data <= 0;
+        state_menu_handle();
+        end
+        USER_TABLE_STATE: begin 
+        oled_pixel_data <= 0;
+        btnC_handle();
+        end
+        STOCK_TABLE_STATE: begin 
+        oled_pixel_data <= 0;
+        btnC_handle();
+        end 
+        GRAPH_STATE: begin 
+        oled_pixel_data <= graph_pixel_data;
+        graph_handle();
+        end
+        ENCRYPTED_STATE: begin 
+        oled_pixel_data <= 0;
+        btnC_handle();
+        end 
+        default: begin 
+        btnC_handle();
+        end
         endcase
         button_control();
     end

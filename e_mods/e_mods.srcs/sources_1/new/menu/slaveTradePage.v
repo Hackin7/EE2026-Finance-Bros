@@ -161,7 +161,7 @@ module slaveTradePage(
                                          pageNo == 1 ? "SET PRICE      " : (
                                          pageNo == 2 ? "SET QUANTITY   " : 
                                                        "ACTION         ")),
-                                         pageNo == 3 ? (buy_sell_state ? "BUY " : "SELL" ) : (pageNo < 3 ? num_string : "    "), "           ",
+                                         pageNo == 3 ? (buy_sell_state ? "SELL" : "BUY " ) : (pageNo < 3 ? num_string : "    "), "           ",
                                         (pageNo == 0 ? (key_in_value == 0000 ? "AAPL" :
                                                         key_in_value == 0001 ? "GOOG" :
                                                                                "BABA"):
