@@ -87,9 +87,16 @@ end
 
 // Convert OLED pixel color to VGA pixel color
 wire [15:0] vga_pixel_data = oled_buffer[buffer_index];
-wire [3:0] vga_red = vga_pixel_data[15:12];
-wire [3:0] vga_green = vga_pixel_data[10:7];
-wire [3:0] vga_blue = vga_pixel_data[4:1];
+
+wire [4:0] oled_red = vga_pixel_data[15:11];
+wire [5:0] oled_green = vga_pixel_data[10:5];
+wire [4:0] oled_blue = vga_pixel_data[4:0];
+
+// Scale color components from OLED range to VGA range
+wire [3:0] vga_red = (oled_red * 15) / 31;
+wire [3:0] vga_green = (oled_green * 15) / 63;
+wire [3:0] vga_blue = (oled_blue * 15) / 31;
+
 wire [11:0] vga_pixel_color = {vga_red, vga_green, vga_blue};
 
 // Set RGB output value based on VGA pixel coordinates and color
