@@ -420,23 +420,23 @@ module module_master #(
     always @ (posedge clk) begin
         case (state)
         MENU_STATE: begin 
-        oled_pixel_data <= 0;
+        //oled_pixel_data <= 0;
         state_menu_handle();
         end
         USER_TABLE_STATE: begin 
-        oled_pixel_data <= ((ypos == 7) ? constant.GRAY : 0);
+        //oled_pixel_data <= ((ypos == 7) ? constant.GRAY : 0);
         btnC_handle();
         end
         STOCK_TABLE_STATE: begin 
-        oled_pixel_data <= ((ypos == 7) ? constant.GRAY : 0);
+        //oled_pixel_data <= ((ypos == 7) ? constant.GRAY : 0);
         btnC_handle();
         end 
         GRAPH_STATE: begin 
-        oled_pixel_data <= graph_pixel_data;
+        //oled_pixel_data <= graph_pixel_data;
         graph_handle();
         end
         ENCRYPTED_STATE: begin 
-        oled_pixel_data <= 0;
+        //oled_pixel_data <= 0;
         btnC_handle();
         end 
         default: begin 
@@ -445,4 +445,24 @@ module module_master #(
         endcase
         button_control();
     end
+    
+    always @ (*) begin
+            case (state)
+            MENU_STATE: begin 
+            oled_pixel_data = 0;
+            end
+            USER_TABLE_STATE: begin 
+            oled_pixel_data = ((ypos == 7) ? constant.GRAY : 0);
+            end
+            STOCK_TABLE_STATE: begin 
+            oled_pixel_data = ((ypos == 7) ? constant.GRAY : 0);
+            end 
+            GRAPH_STATE: begin 
+            oled_pixel_data = graph_pixel_data;
+            end
+            ENCRYPTED_STATE: begin 
+            oled_pixel_data = 0;
+            end 
+            endcase
+        end
 endmodule
