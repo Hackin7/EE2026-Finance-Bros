@@ -43,7 +43,6 @@ module trade_module_slave #(
 
     // Debugging //////////////////////////////////////////////////////////
     // Control
-    input [15:0] sw, output [15:0] led, 
     output reg [7:0] fsm_state=2, 
     output reg [32-1:0] fsm_timer=0 
 );
@@ -195,70 +194,6 @@ module trade_module_slave #(
         end
     end
     endtask
-    
-    /* Debugging ---------------------------------------------------------------*/
-    // parser not working
-    /*
-    assign led[15:8] = (
-        sw[15:11] == 0 ? packet_type : ( // Buggy
-        sw[15:11] == 1 ? packet_account_id : (   
-        sw[15:11] == 2 ? packet_stock_id : (
-        sw[15:11] == 3 ? packet_qty : (
-        sw[15:11] == 4 ? packet_price : (
-        sw[15:11] == 5 ? uart_rx[7:0] : (
-        sw[15:11] == 6 ? uart_rx[15:8] : (
-        sw[15:11] == 7 ? uart_rx[23:16] : (
-        sw[15:11] == 8 ? uart_rx[31:24] : (
-        sw[15:11] == 9 ? uart_rx[39:32] : (
-        sw[15:11] == 10 ? uart_rx[47:40] : (
-        sw[15:11] == 11 ? uart_rx[55:48] : (
-        sw[15:11] == 12 ? uart_rx[63:56] : (
-            ~8'b0
-        )))))))))))))
-    );
-
-    assign led[7:0] = (
-        sw[15:11] == 0 ? tx_type : (
-        sw[15:11] == 1 ? tx_account_id : (   
-        sw[15:11] == 2 ? tx_stock_id : (
-        sw[15:11] == 3 ? tx_qty : (
-        sw[15:11] == 4 ? tx_price : (
-        sw[15:11] == 5 ? uart_tx[7:0] : (
-        sw[15:11] == 6 ? uart_tx[15:8] : (
-        sw[15:11] == 7 ? uart_tx[23:16] : (
-        sw[15:11] == 8 ? uart_tx[31:24] : (
-        sw[15:11] == 9 ? uart_tx[39:32] : (
-        sw[15:11] == 10 ? uart_tx[47:40] : (
-        sw[15:11] == 11 ? uart_tx[55:48] : (
-        sw[15:11] == 12 ? uart_tx[63:56] : (
-        sw[15:11] == 15 ? send_status: (
-            ~8'b0
-        ))))))))))))))
-    );*/
-    reg [15:0] led_out = 0;
-    assign led = led_out;
-    
-    always @(*) begin
-        if (sw[15:11] == 5'b0000) begin    
-            led_out[15:8] = fsm_state;
-            led_out[7:0] = send_status;
-        end else if (sw[15:11] == 5'b0001) begin    
-            led_out = trigger;
-        end else if (sw[15:11] == 5'b0010) begin    
-            led_out = fsm_timer;
-        end else if (sw[15:11] == 5'b0011) begin    
-            led_out = {packet_type, packet_account_id};
-        end else if (sw[15:11] == 5'b0100) begin    
-            led_out = extra_state;
-        end else if (sw[15:11] == 5'b101) begin    
-            led_out = {packet_stock_id, packet_account_id};
-        end else if (sw[15:11] == 5'b111) begin    
-            led_out = {packet_qty, packet_price};
-        end else begin
-            led_out = ~16'b0;
-        end
-    end
-
 endmodule
 
 

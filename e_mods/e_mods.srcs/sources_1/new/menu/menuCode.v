@@ -150,7 +150,7 @@ module menuCode#(
         .stock1(trade_slave_get_stock1),
         .stock2(trade_slave_get_stock2),
         .stock3(trade_slave_get_stock3),
-        .led(led), .sw(sw), .encrypted(encrypted), .decrypted(decrypted)
+        .encrypted(encrypted), .decrypted(decrypted)
     );
     
     /* More Pages --------------------------------------------------------------------*/
