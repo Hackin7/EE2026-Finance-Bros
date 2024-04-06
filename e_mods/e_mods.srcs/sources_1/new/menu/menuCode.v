@@ -27,6 +27,10 @@ module menuCode#(
         input btnC, btnU, btnR, btnL, btnD,
         input [15:0] sw, output [15:0] led, 
         input [12:0] oled_pixel_index, output [15:0] oled_pixel_data,
+        // OLED Text Module
+        output reg [15:0]       text_colour, 
+        output reg [8*15*7-1:0] text_lines,
+        // 7 seg
         output [6:0] seg, output dp, output [3:0] an,
         
         // UART
@@ -38,6 +42,7 @@ module menuCode#(
     wire [12:0] pixel_index = oled_pixel_index;
     reg [15:0] pixel_data = 16'b0;
     assign oled_pixel_data = pixel_data;
+    wire [7:0] xpos = oled_pixel_index % 96; wire [7:0] ypos = oled_pixel_index / 96;
     reg [6:0] control_seg;
     reg control_dp;
     reg [3:0] control_an;
@@ -46,10 +51,21 @@ module menuCode#(
     assign an = control_an;
     //constants library
     constants constant();
+    reg [3:0] state = 4'd6;
+    parameter STATE_INPUT_SLAVE_ID = 6;
+    parameter STATE_MENU = 1;
+    parameter STATE_ADD_TRADE = 2;
+    parameter STATE_FAIL_ADD_TRADE = 3;
+    parameter STATE_TABLE_VIEW = 4;
+    parameter STATE_CURRENT_TRADE = 5;
+    parameter STATE_VIEW_ENCRYPTED = 7;
     
+    /* Pages --------------------------------------------------------------------*/
     //page one
     reg pageOne_reset = 1;
-    wire [15:0] pageOne_pixel_data;
+    //wire [15:0] pageOne_pixel_data;
+    wire [15:0] add_trade_text_colour;
+    wire [8*15*7-1:0] add_trade_text_lines;
     wire [6:0] pageOne_seg;
     wire pageOne_dp;
     wire [3:0] pageOne_an;
@@ -58,27 +74,30 @@ module menuCode#(
     wire pageOne_done;
     slaveTradePage pageOne(
         .clk(clk), .reset(pageOne_reset), .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
-        .sw(sw), .pixel_index(oled_pixel_index), .oled_pixel_data(pageOne_pixel_data),
+        .sw(sw), .pixel_index(oled_pixel_index), //.oled_pixel_data(pageOne_pixel_data),
         .seg(pageOne_seg), .dp(pageOne_dp), .an(pageOne_an),
-        .stock_id(stock_id), .price(price), .quantity(qty), .action(action), .done(pageOne_done)
+        .stock_id(stock_id), .price(price), .quantity(qty), .action(action), .done(pageOne_done),
+        .text_lines(add_trade_text_lines), .text_colour(add_trade_text_colour)
     );
     
     //menu page
-    wire [15:0] menu_page_pixel_data;
-    reg menu_page_reset;
-    wire [6:0] menu_seg;
-    wire menu_dp;
-    wire [3:0] menu_an;
     reg [3:0] menu_button_state;
+    wire [15:0] menu_text_colour;
+    wire [8*15*7-1:0] menu_text_lines;
     slaveMenuPage menuPage(
-        .clk(clk), .reset(menu_page_reset), .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
-        .sw(sw), .pixel_index(oled_pixel_index), .oled_pixel_data(menu_page_pixel_data),
-        .seg(menu_seg), .dp(menu_dp), .an(menu_an), .menu_button_state(menu_button_state)
+        //.clk(clk), .reset(menu_page_reset), .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
+        //.pixel_index(oled_pixel_index), .oled_pixel_data(menu_page_pixel_data),
+        .ypos(ypos), .text_colour(menu_text_colour), .text_lines(menu_text_lines),
+        .menu_button_state(menu_button_state)
     );
 
     //input id page
     reg set_id_reset;
     wire [15:0] input_id_pixel_data;
+
+    wire [15:0] slave_id_text_colour;
+    wire [8*15*7-1:0] slave_id_text_lines;
+
     wire [6:0] input_id_seg;
     wire input_id_dp;
     wire [3:0] input_id_an;
@@ -88,41 +107,10 @@ module menuCode#(
         .clk(clk), .reset(set_id_reset),
         .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
         .sw(sw), .pixel_index(oled_pixel_index), .oled_pixel_data(input_id_pixel_data),
+        .text_colour(slave_id_text_colour), .text_lines(slave_id_text_lines), 
         .seg(input_id_seg), .dp(input_id_dp), .an(input_id_an), .account_id(account_id),
         .done(input_id_done)
     );
-    
-    //table page
-    reg [3:0] self_status_state = 0;
-    wire [8*4-1:0] self_status_state_string;
-    text_num_val_mapping text_num1_module(self_status_state, self_status_state_string);
-    wire [15:0] table_view_loading_pixel_data;
-    wire [7:0] xpos = oled_pixel_index % 96; wire [7:0] ypos = oled_pixel_index / 96;
-    text_dynamic #(12) table_view_loading(
-        .x(xpos), .y(ypos), 
-        .color(constant.WHITE), .background(constant.BLACK), 
-        .text_y_pos(56), .string({"LOADING ", self_status_state_string}), .offset(0), //9*6), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(table_view_loading_pixel_data));
-    
-    wire [15:0] table_view_ready_pixel_data;
-    reg [31:0] table_balance = 0;
-    reg [7:0] table_stock1 = 9999;
-    reg [7:0] table_stock2 = 9999;
-    reg [7:0] table_stock3 = 9999;
-    wire table_view_reset;
-    wire [31:0] trade_slave_balance; 
-    slave_table_view table_view(
-        .clk(clk), .reset(table_view_reset), 
-// HEAD
-        .pixel_index(oled_pixel_index), .oled_pixel_data(table_view_ready_pixel_data), 
-        .num1(trade_slave_account_id), .num2(table_balance), .num3(table_stock1), .num4(table_stock2), .num5(table_stock3), .num6(0)
-    );
-    wire [15:0] table_view_pixel_data = table_view_ready_pixel_data | (self_status_state != 3 ? table_view_loading_pixel_data : 0);
-/*
-        .pixel_index(oled_pixel_index), .oled_pixel_data(table_view_pixel_data),
-        .balance(trade_slave_balance), .account_id(account_id)
-    );
- slave-ui-menus*/
 
     /* UART Control --------------------------------------------------------------------*/
     trade_packet_former trade_packet();
@@ -138,6 +126,8 @@ module menuCode#(
     wire [7:0] trade_slave_get_stock1;
     wire [7:0] trade_slave_get_stock2;
     wire [7:0] trade_slave_get_stock3;
+    wire encrypted = sw[7];
+    wire decrypted = sw[8];
     trade_module_slave 
         #(
          .DBITS(DBITS), .UART_FRAME_SIZE(UART_FRAME_SIZE), .RX_TIMEOUT(100_000_000)
@@ -160,16 +150,77 @@ module menuCode#(
         .stock1(trade_slave_get_stock1),
         .stock2(trade_slave_get_stock2),
         .stock3(trade_slave_get_stock3),
-        .led(led), .sw(sw)
+        .led(led), .sw(sw), .encrypted(encrypted), .decrypted(decrypted)
     );
     
-    //current trade page
-        wire [15:0] last_packet_pixel_data;
-        view_packet last_packet(
-            .price(trade_slave_price), .quantity(trade_slave_qty), 
-            .stock_id(trade_slave_stock_id), .action(trade_slave_type),
-            .pixel_index(oled_pixel_index), .packet_pixel_data(last_packet_pixel_data)
-        );
+    /* More Pages --------------------------------------------------------------------*/
+    //table page
+    reg [3:0] self_status_state = 0;
+    wire [8*4-1:0] self_status_state_string;
+    text_num_val_mapping text_num1_module(self_status_state, self_status_state_string);
+    wire [15:0] table_view_loading_pixel_data;
+    
+    text_dynamic #(12) table_view_loading(
+        .x(xpos), .y(ypos), 
+        .color(constant.WHITE), .background(constant.BLACK), 
+        .text_y_pos(56), .string({"LOADING ", self_status_state_string}), .offset(0), //9*6), 
+        .repeat_flag(0), .x_pos_offset(0), .pixel_data(table_view_loading_pixel_data));
+    
+    wire [15:0] table_view_ready_pixel_data;
+    reg [31:0] table_balance = 0;
+    reg [7:0] table_stock1 = 9999;
+    reg [7:0] table_stock2 = 9999;
+    reg [7:0] table_stock3 = 9999;
+    wire table_view_reset;
+    wire [31:0] trade_slave_balance; 
+    
+    wire [15:0] table_view_text_colour;
+    wire [8*15*7-1:0] table_view_text_lines;
+    slave_table_view table_view(
+        .clk(clk), .reset(table_view_reset), 
+        .pixel_index(oled_pixel_index), .oled_pixel_data(table_view_ready_pixel_data), 
+        .num1(trade_slave_account_id), .num2(table_balance), .num3(table_stock1), .num4(table_stock2), .num5(table_stock3), .num6(0), 
+        .xpos(xpos), .ypos(ypos), 
+        .text_lines(table_view_text_lines), .text_colour(table_view_text_colour)
+    );
+
+    wire [15:0] table_view_pixel_data = (
+        table_view_ready_pixel_data | 
+        (self_status_state != 3 ? table_view_loading_pixel_data : 0) | 
+        ((ypos == 7) ? constant.GRAY : 0)
+    );
+   
+    reg [2:0] seed;
+    wire [63:0] packet = {8'h5B, trade_slave_type, trade_slave_account_id, trade_slave_stock_id, trade_slave_qty, trade_slave_price, 8'h0 ,8'h5D}; //current trade page
+    wire [15:0] current_trade_text_colour;
+    wire [8*15*7-1:0] current_trade_text_lines;
+    view_packet last_packet(
+        /*.packet(state == STATE_VIEW_ENCRYPTED ? 
+        packet_encrypted : packet),*/
+        .pixel_index(oled_pixel_index), //.packet_pixel_data(last_packet_pixel_data)
+        .packet(packet),
+        .text_colour(current_trade_text_colour), .text_lines(current_trade_text_lines)
+    );
+    
+    wire [63:0] encrypted_packet, decrypted_packet;
+    encryption encryptor(.action(0),
+    .seed(0), .data_in(packet), .data_out(encrypted_packet)
+    );
+    encryption decryptor(.action(1),
+        .seed(0), .data_in(encrypted_packet), .data_out(decrypted_packet)
+    );
+    wire [8*12-1:0] encrypted_string, decrypted_string, packet_string;
+    binary_to_hex encrypted_converter(encrypted_packet[55:8], encrypted_string);
+    binary_to_hex decrypted_converter(decrypted_packet[55:8], decrypted_string);
+    binary_to_hex uncrypted_converter(packet[55:8], packet_string);
+    wire [8*15*7-1:0] encryption_text_lines = {"UNCRYPTED      ", 
+                                               packet_string, "   ",
+                                               "ENCRYPTED      ",
+                                               encrypted_string, "   ",
+                                               "DECRYPTED      ",
+                                               decrypted_string, "   ",
+                                               "               "
+    };
 
     // Logic
     parameter TRADE_SUCCESS_SHOW = 200_000_000; // 2 seconds
@@ -196,11 +247,11 @@ module menuCode#(
     task button_control();
     begin
         if (debounce) begin
-            if (debounce_timer == DEBOUNCE_TIME-1) begin
+            debounce_timer <= debounce_timer + 1;
+            if (debounce_timer > DEBOUNCE_TIME-1) begin
                 debounce <= 0;
                 debounce_timer <= 0;
             end
-            debounce <= debounce + 1;
         end else begin
             /*if (prev_btnU == 1 && btnU == 0) begin
                 key_in_value <= key_in_value + 1;
@@ -213,13 +264,7 @@ module menuCode#(
     endtask
     
     /* State Machine Code ------------------------------------------------------------------*/
-    reg [3:0] state = 4'd6;
-    parameter STATE_INPUT_SLAVE_ID = 6;
-    parameter STATE_MENU = 1;
-    parameter STATE_ADD_TRADE = 2;
-    parameter STATE_FAIL_ADD_TRADE = 3;
-    parameter STATE_TABLE_VIEW = 4;
-    parameter STATE_CURRENT_TRADE = 5;
+
 
     task state_set_id_handle(); begin
         if (prev_btnC == 1 && btnC == 0) begin
@@ -246,15 +291,17 @@ module menuCode#(
                 end else if (menu_button_state == 3) begin
                     state <= STATE_INPUT_SLAVE_ID;
                     set_id_reset <= 0;
+                end else if (menu_button_state == 4) begin
+                    state <= STATE_VIEW_ENCRYPTED;
                 end
                 menu_button_state <= 0;
             end
             if (prev_btnU == 1 && btnU == 0) begin
-                menu_button_state <= menu_button_state == 0 ? 3 : menu_button_state - 1;
+                menu_button_state <= menu_button_state == 0 ? 4 : menu_button_state - 1;
                 debounce <= 1;
             end
             if (prev_btnD == 1 && btnD == 0) begin
-                menu_button_state <= menu_button_state == 3 ? 0 : menu_button_state + 1;
+                menu_button_state <= menu_button_state == 4 ? 0 : menu_button_state + 1;
                 debounce <= 1;
             end
         end
@@ -279,6 +326,8 @@ module menuCode#(
         end
     end
     endtask
+    
+    reg [7:0] prev_trade_slave_type;
     
     task state_table_handle();
     begin
@@ -326,7 +375,7 @@ module menuCode#(
     end
     endtask
     
-    reg [7:0] prev_trade_slave_type;
+
     
     task state_current_trade_handle();
     begin
@@ -358,7 +407,7 @@ module menuCode#(
         end else if (state == STATE_FAIL_ADD_TRADE) begin
         end else if (state == STATE_TABLE_VIEW) begin
             state_table_handle();
-        end else if (state == STATE_CURRENT_TRADE) begin
+        end else if (state == STATE_CURRENT_TRADE || state == STATE_VIEW_ENCRYPTED) begin
             state_current_trade_handle();
         end
         button_control();
@@ -367,28 +416,59 @@ module menuCode#(
 
     always @ (*) begin
         if (trade_module_send_success > 0) begin
+            text_colour = 0;
+            text_lines  = 0;
             pixel_data <= constant.GREEN;   
+            control_seg <= ~7'b0;
+            control_dp <= 1;
+            control_an <= ~4'b0;
         end else if (state == STATE_INPUT_SLAVE_ID) begin
+            text_colour = slave_id_text_colour;
+            text_lines  = slave_id_text_lines;
             pixel_data <= input_id_pixel_data;
             control_seg <= input_id_seg;
             control_an <= input_id_an;
             control_dp <= input_id_dp;
         end else if (state == STATE_MENU) begin
-            pixel_data <= menu_page_pixel_data;
-            control_seg <= menu_seg;
-            control_dp <= menu_dp;
-            control_an <= menu_an;
+            text_colour = menu_text_colour;
+            text_lines  = menu_text_lines;
+            pixel_data <= 0;
+            control_seg <= ~7'b0;
+            control_dp <= 1;
+            control_an <= ~4'b0;
         end else if (state == STATE_ADD_TRADE) begin
-            pixel_data <= pageOne_pixel_data;
+            text_colour = add_trade_text_colour;
+            text_lines  = add_trade_text_lines;
+            pixel_data <= 0; //pageOne_pixel_data;
             control_seg <= pageOne_seg;
             control_dp <= pageOne_dp;
             control_an <= pageOne_an;
         end else if (state == STATE_FAIL_ADD_TRADE) begin
+            text_colour = 0;
+            text_lines  = 0;
             pixel_data <= constant.RED;
+            control_seg <= ~7'b0;
+            control_dp <= 1;
+            control_an <= ~4'b0;
         end else if (state == STATE_TABLE_VIEW) begin
-            pixel_data <= table_view_pixel_data;
+            text_colour = table_view_text_colour;
+            text_lines  = table_view_text_lines;
+            pixel_data  = table_view_pixel_data;
+            control_seg = ~7'b0;
+            control_dp = 1;
+            control_an = ~4'b0;
         end else if (state == STATE_CURRENT_TRADE) begin
-            pixel_data <= last_packet_pixel_data;
+            text_colour = current_trade_text_colour;
+            text_lines  = current_trade_text_lines;
+            control_seg <= ~7'b0;
+            control_dp <= 1;
+            control_an <= ~4'b0;
+        end else if (state == STATE_VIEW_ENCRYPTED) begin
+            text_lines = encryption_text_lines;
+            text_colour = constant.WHITE;
+            control_seg <= ~7'b0;
+            control_dp <= 1;
+            control_an <= ~4'b0;
         end
     end
 

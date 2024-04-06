@@ -8,6 +8,7 @@ module text_num_val_mapping #(
     wire [3:0] digit2 = (display_num / 10) % 10;
     wire [3:0] digit3 = (display_num / 100) % 10;
     wire [3:0] digit4 = (display_num / 1000) % 10;
+    
 
     function [7:0] digitToChar(input [3:0] digit);
     begin

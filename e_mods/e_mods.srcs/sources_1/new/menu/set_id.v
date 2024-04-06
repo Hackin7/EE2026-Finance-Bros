@@ -27,6 +27,10 @@ module set_id(
     input btnC, btnU, btnL, btnR, btnD, input [15:0] sw,
     input [12:0] pixel_index,
     output [15:0] oled_pixel_data,
+    // OLED Text
+    output [15:0] text_colour, 
+    output [8*15*7-1:0] text_lines,
+
     output [6:0] seg, output dp, output [3:0] an,
     output reg [31:0] account_id,
     output reg done = 0
@@ -40,15 +44,15 @@ module set_id(
     reg prev_btnC=0, prev_btnU=0, prev_btnL=0, prev_btnR=0, prev_btnD=0;
     reg debounce = 0;
     reg [31:0] debounce_timer = 0;
-    parameter DEBOUNCE_TIME = 50; //100ms
+    parameter DEBOUNCE_TIME = 30_000_000; //100ms
     
     task button_control(); begin
         if (debounce) begin
+            debounce_timer <= debounce_timer + 1;
             if (debounce_timer == DEBOUNCE_TIME - 1) begin
                 debounce <= 0;
                 debounce_timer <= 0;
             end
-            debounce <= debounce + 1;
         end else begin
             if (prev_btnU == 1 && btnU == 0) begin 
                 key_in_value <= key_in_value == 9999 ? 0 : key_in_value + 1;
@@ -72,34 +76,35 @@ module set_id(
     endtask
     
     /* OUTPUT ----------------------------------------------------------------------------------------------------*/
-        /* 7 seg ---------------------------------------------------*/
-        wire [6:0] seg0, seg1, seg2, seg3;
-    
-        seg_val_mapping svm(key_in_value, seg0, seg1, seg2, seg3);
-        seg_multiplexer sm(
-            clk, 
-            seg0, seg1, seg2, seg3,
-            1, 1, 1, 1, 
-            seg, dp, an
-        );
+    /* 7 seg ---------------------------------------------------*/
+    wire [6:0] seg0, seg1, seg2, seg3;
 
-    wire [15:0] account_id_pixel_data;
-    text_dynamic #(14) text_module(
-            .x(xpos), .y(ypos), 
-            .color(constant.WHITE), .background(constant.BLACK), 
-            .text_y_pos(0), .string("SET ACCOUNT ID"), .offset(0), //9*6), 
-            .repeat_flag(0), .x_pos_offset(0), .pixel_data(account_id_pixel_data));
-
+    seg_val_mapping svm(key_in_value, seg0, seg1, seg2, seg3);
+    seg_multiplexer sm(
+        clk, 
+        seg0, seg1, seg2, seg3,
+        1, 1, 1, 1, 
+        seg, dp, an
+    );
 
     wire [8*4-1:0] account_num;
     wire [15:0] account_num_pixel_data;
     text_num_val_mapping price_num_module(key_in_value, account_num);
-    text_dynamic #(4) text_num_display_module(
-        .x(xpos), .y(ypos), 
-        .color(constant.CYAN), .background(constant.BLACK), 
-        .text_y_pos(10), .string(account_num), .offset(0), 
-        .repeat_flag(0), .x_pos_offset(0), .pixel_data(account_num_pixel_data));
-        
+
+    assign text_colour = (
+        (ypos < 10) ? constant.WHITE : 
+        constant.CYAN
+    );
+    assign text_lines = {
+        "SET ACCOUNT ID ", 
+        {account_num, "           "}, 
+        "               ",
+        "               ",
+        "               ", 
+        "               ", 
+        "               "
+    };
+
     always @ (posedge clk) begin
         if (reset) begin
             key_in_value <= 0;
@@ -113,6 +118,6 @@ module set_id(
         xpos <= pixel_index % 96;
         ypos <= pixel_index / 96;
         
-        pixel_data <= account_id_pixel_data | account_num_pixel_data;
+        pixel_data <= 0; //account_id_pixel_data | account_num_pixel_data;
     end
 endmodule

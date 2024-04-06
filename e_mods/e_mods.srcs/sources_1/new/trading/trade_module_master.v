@@ -7,16 +7,19 @@ This module handles the market code and all the inputs and outputs
 
 module trade_module_master #(
     parameter DBITS=8, UART_FRAME_SIZE=8, 
-    INITIAL_ACCOUNTS='hff_ff_ff_00ffffff___01_00_01_00ffffff___01_00_00_00000fff,
-    INITIAL_STOCKS='h00_ff__00_ff__00_0f
+    INITIAL_ACCOUNTS='h01_00_00_00000fff___01_00_00_00000fff___01_00_00_00000fff,
+    INITIAL_STOCKS='h00_90__00_a0__00_a9
 )(
     // Control
     input reset, input clk_100MHz,
+    input encrypted0, encrypted1, encrypted2,
+          decrypted0, decrypted1, decrypted2,
     // UART
     input [UART_FRAME_SIZE*DBITS-1:0] uart_rx,
     output [UART_FRAME_SIZE*DBITS-1:0] uart_tx,
     output reg uart_tx_trigger=0,
     output reg uart_rx_clear=0,
+    output reg [UART_FRAME_SIZE*DBITS-1:0] prev_uart_rx,
 
     input [UART_FRAME_SIZE*DBITS-1:0] uart1_rx,
     output [UART_FRAME_SIZE*DBITS-1:0] uart1_tx,
@@ -64,11 +67,11 @@ module trade_module_master #(
         end
     endfunction
     
-    function [BITWIDTH_STOCKS_THRESHOLD-1:0] stock_get_threshold(
+    function signed [BITWIDTH_STOCKS_THRESHOLD-1:0] stock_get_threshold(
         input [BITWIDTH_NO_STOCKS-1:0] index
     );
         begin
-            stock_get_threshold = stocks >> (BITWIDTH_STOCKS*index + 8);
+            stock_get_threshold = $signed(stocks >> (BITWIDTH_STOCKS*index + 8));
         end
     endfunction
 
@@ -165,7 +168,7 @@ module trade_module_master #(
         .type(master_type), .account_id(master_account_id), 
         .stock_id(master_stock_id), .qty(master_qty), 
         .price(master_price), .balance(master_balance), 
-        .uart_tx(uart_tx)
+        .uart_tx(uart_tx), .encrypted(encrypted0)
     );
 
     reg [7:0] master1_type=0;
@@ -181,7 +184,7 @@ module trade_module_master #(
         .type(master1_type), .account_id(master1_account_id), 
         .stock_id(master1_stock_id), .qty(master1_qty), 
         .price(master1_price), .balance(master1_balance), 
-        .uart_tx(uart1_tx)
+        .uart_tx(uart1_tx), .encrypted(encrypted1)
     );
 
     reg [7:0] master2_type=0;
@@ -197,7 +200,7 @@ module trade_module_master #(
         .type(master2_type), .account_id(master2_account_id), 
         .stock_id(master2_stock_id), .qty(master2_qty), 
         .price(master2_price), .balance(master2_balance), 
-        .uart_tx(uart2_tx)
+        .uart_tx(uart2_tx), .encrypted(encrypted2)
     );
     /* --- UART Receiver -------------------------------------------------------------------------- */
     wire [7:0] slave_type;
@@ -210,6 +213,8 @@ module trade_module_master #(
             .DBITS(DBITS), 
             .UART_FRAME_SIZE(UART_FRAME_SIZE)
         ) parser (
+        .seed(0),
+        .encrypted(decrypted0),
         .uart_rx(uart_rx), 
         .type(slave_type), 
         .account_id(slave_account_id), 
@@ -228,6 +233,8 @@ module trade_module_master #(
             .DBITS(DBITS), 
             .UART_FRAME_SIZE(UART_FRAME_SIZE)
         ) parser1 (
+        .encrypted(decrypted1),
+        .seed(1),
         .uart_rx(uart1_rx), 
         .type(slave1_type), 
         .account_id(slave1_account_id), 
@@ -245,6 +252,8 @@ module trade_module_master #(
             .DBITS(DBITS), 
             .UART_FRAME_SIZE(UART_FRAME_SIZE)
         ) parser2 (
+        .encrypted(decrypted2),
+        .seed(2),
         .uart_rx(uart2_rx), 
         .type(slave2_type), 
         .account_id(slave2_account_id), 
@@ -263,10 +272,12 @@ module trade_module_master #(
         end else if (slave_type == parser.TYPE_BUY && !uart_operation) begin
             trade_approve_buy();
             uart_operation <= 1;
+            prev_uart_rx <= uart_rx;
             uart_rx_clear <= 1;
         end else if (slave_type == parser.TYPE_SELL && !uart_operation) begin
             trade_approve_sell();
             uart_operation <= 1;
+            prev_uart_rx <= uart_rx;
             uart_rx_clear <= 1;
         end else if (slave_type == parser.TYPE_GET_ACCOUNT_BALANCE) begin
             trade_return_account_balance();
@@ -396,7 +407,7 @@ module trade_module_master #(
         // Market Movement -----------------------------------
         if (can_buy) begin
             if (slave_price < curr_stock_price) begin
-                market_movement_one(slave_stock_id, stock_get_threshold(slave_stock_id)-1);
+                //market_movement_one(slave_stock_id, stock_get_threshold(slave_stock_id)-1);
             end else if (slave_price >= curr_stock_price) begin
                 market_movement_one(slave_stock_id, stock_get_threshold(slave_stock_id)+1);
             end
@@ -430,7 +441,7 @@ module trade_module_master #(
             if (slave_price <= curr_stock_price) begin
                 market_movement_one(slave_stock_id, stock_get_threshold(slave_stock_id)-1);
             end else if (slave_price > curr_stock_price) begin
-                market_movement_one(slave_stock_id, stock_get_threshold(slave_stock_id)+1);
+                //market_movement_one(slave_stock_id, stock_get_threshold(slave_stock_id)+1);
             end
         end
     end
@@ -498,7 +509,7 @@ module trade_module_master #(
         // Market Movement -----------------------------------
         if (can1_buy) begin
             if (slave1_price < curr1_stock_price) begin
-                market_movement_one(slave1_stock_id, stock_get_threshold(slave1_stock_id)-1);
+                //market_movement_one(slave1_stock_id, stock_get_threshold(slave1_stock_id)-1);
             end else if (slave1_price >= curr1_stock_price) begin
                 market_movement_one(slave1_stock_id, stock_get_threshold(slave1_stock_id)+1);
             end
@@ -532,7 +543,7 @@ module trade_module_master #(
             if (slave1_price <= curr1_stock_price) begin
                 market_movement_one(slave1_stock_id, stock_get_threshold(slave1_stock_id)-1);
             end else if (slave1_price > curr1_stock_price) begin
-                market_movement_one(slave1_stock_id, stock_get_threshold(slave1_stock_id)+1);
+                //market_movement_one(slave1_stock_id, stock_get_threshold(slave1_stock_id)+1);
             end
         end
     end
@@ -600,9 +611,9 @@ module trade_module_master #(
         // Market Movement -----------------------------------
         if (can2_buy) begin
             if (slave2_price < curr2_stock_price) begin
-                market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)-1);
+                //market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)-1); // Remove downward movement logic
             end else if (slave2_price >= curr2_stock_price) begin
-                market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)+1);
+                market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)+1); // Keep the upscaling logic
             end
         end
     end
@@ -634,7 +645,7 @@ module trade_module_master #(
             if (slave2_price <= curr2_stock_price) begin
                 market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)-1);
             end else if (slave2_price > curr2_stock_price) begin
-                market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)+1);
+                //market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)+1); // For Debugging
             end
         end
     end
