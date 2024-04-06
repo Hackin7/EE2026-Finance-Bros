@@ -31,6 +31,9 @@ module top (
     output vsync,
     output [11:0] rgb
 );
+    wire enable_mode_master = sw[0];
+    wire enable_mode_slave = sw[1];
+    wire enable_mode_raycasting = sw[2];
     /*
     rx0 tx0 rx1 tx1 rx2 tx2
     JA0 JA1 JA2 JA3 JA7 JA8
@@ -48,7 +51,7 @@ module top (
     wire [12:0] oled_pixel_index;
     wire [15:0] oled_pixel_data;
     wire [15:0] oled2_pixel_data;
-    wire separate_vga = sw[4];
+    wire separate_vga = sw[3];
     // Module
     /*Oled_Display display(
         .clk(clk_6_25mhz), .reset(0), 
@@ -237,7 +240,9 @@ module top (
 
     module_master master_module(
         .reset(master_reset), .clk(clk),
-        .btnC(btnC), .btnU(btnU), .btnL(btnL), .btnR(btnR), .btnD(btnD), .sw(sw), .led(master_led), 
+        .btnC(enable_mode_master & btnC), .btnU(enable_mode_master & btnU), 
+        .btnL(enable_mode_master & btnL), .btnR(enable_mode_master & btnR), .btnD(enable_mode_master & btnD), 
+        .sw(sw), .led(master_led), 
         .seg(master_seg), .dp(master_dp), .an(master_an),
         // UART
         .uart_rx(uart_rx), .uart_tx(master_uart_tx),
@@ -276,7 +281,8 @@ module top (
 
     menuCode slave_menu(
         .clk(clk), .reset(slave_reset) , .sw(sw),.led(slave_led),
-        .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
+        .btnC(enable_mode_slave & btnC), .btnU(enable_mode_slave & btnU), 
+        .btnR(enable_mode_slave & btnR), .btnL(enable_mode_slave & btnL), .btnD(enable_mode_slave & btnD),
         .oled_pixel_index(oled_pixel_index), .oled_pixel_data(slave_oled_pixel_data),
         // OLED Text
         .text_lines(slave_text_lines), .text_colour(slave_text_colour), 
@@ -302,7 +308,9 @@ module top (
 
     raycasting raycast_module(
         .clk(clk), .reset(raycast_reset),
-        .btnC(btnC), .btnU(btnU), .btnR(btnR), .btnL(btnL), .btnD(btnD),
+        .btnC(enable_mode_raycasting & btnC), .btnU(enable_mode_raycasting & btnU), 
+        .btnR(enable_mode_raycasting & btnR), .btnL(enable_mode_raycasting & btnL), 
+        .btnD(enable_mode_raycasting & btnD),
         .oled_pixel_index(oled_pixel_index), .oled_pixel_data(raycast_oled_pixel_data),
         // OLED Text
         .text_lines(raycast_text_lines), .text_colour(raycast_text_colour), 
@@ -317,9 +325,6 @@ module top (
 
     //// Overall Control Logic ////////////////////////////////////////////////////////////////////////////////////
     // 4.E1
-    wire enable_mode_master = sw[0];
-    wire enable_mode_slave = sw[1];
-    wire enable_mode_raycasting = sw[2];
 
     assign led = 0; //r_led;
     //reg [15:0] r_led;                           assign led = r_led;

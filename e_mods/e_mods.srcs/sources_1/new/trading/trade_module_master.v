@@ -8,7 +8,7 @@ This module handles the market code and all the inputs and outputs
 module trade_module_master #(
     parameter DBITS=8, UART_FRAME_SIZE=8, 
     INITIAL_ACCOUNTS='h01_00_00_00000fff___01_00_00_00000fff___01_00_00_00000fff,
-    INITIAL_STOCKS='h00_90__00_a0__00_a9
+    INITIAL_STOCKS='h00_9f__00_a0__00_a9
 )(
     // Control
     input reset, input clk_100MHz,
@@ -407,7 +407,7 @@ module trade_module_master #(
             if (slave_price < curr_stock_price) begin
                 //market_movement_one(slave_stock_id, stock_get_threshold(slave_stock_id)-1);
             end else if (slave_price >= curr_stock_price) begin
-                market_movement_one(slave_stock_id, stock_get_threshold(slave_stock_id)+1);
+                market_movement_one(slave_stock_id, stock_get_threshold(slave_stock_id)+slave_qty);
             end
         end
     end
@@ -437,7 +437,7 @@ module trade_module_master #(
         // Market Movement -----------------------------------
         if (can_sell) begin
             if (slave_price <= curr_stock_price) begin
-                market_movement_one(slave_stock_id, stock_get_threshold(slave_stock_id)-1);
+                market_movement_one(slave_stock_id, stock_get_threshold(slave_stock_id)-slave_qty);
             end else if (slave_price > curr_stock_price) begin
                 //market_movement_one(slave_stock_id, stock_get_threshold(slave_stock_id)+1);
             end
@@ -509,7 +509,7 @@ module trade_module_master #(
             if (slave1_price < curr1_stock_price) begin
                 //market_movement_one(slave1_stock_id, stock_get_threshold(slave1_stock_id)-1);
             end else if (slave1_price >= curr1_stock_price) begin
-                market_movement_one(slave1_stock_id, stock_get_threshold(slave1_stock_id)+1);
+                market_movement_one(slave1_stock_id, stock_get_threshold(slave1_stock_id)+slave1_qty);
             end
         end
     end
@@ -539,7 +539,7 @@ module trade_module_master #(
         // Market Movement -----------------------------------
         if (can1_sell) begin
             if (slave1_price <= curr1_stock_price) begin
-                market_movement_one(slave1_stock_id, stock_get_threshold(slave1_stock_id)-1);
+                market_movement_one(slave1_stock_id, stock_get_threshold(slave1_stock_id)-slave1_qty);
             end else if (slave1_price > curr1_stock_price) begin
                 //market_movement_one(slave1_stock_id, stock_get_threshold(slave1_stock_id)+1);
             end
@@ -611,7 +611,7 @@ module trade_module_master #(
             if (slave2_price < curr2_stock_price) begin
                 //market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)-1); // Remove downward movement logic
             end else if (slave2_price >= curr2_stock_price) begin
-                market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)+1); // Keep the upscaling logic
+                market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)+slave2_qty); // Keep the upscaling logic
             end
         end
     end
@@ -641,7 +641,7 @@ module trade_module_master #(
         // Market Movement -----------------------------------
         if (can2_sell) begin
             if (slave2_price <= curr2_stock_price) begin
-                market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)-1);
+                market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)-slave2_qty);
             end else if (slave2_price > curr2_stock_price) begin
                 //market_movement_one(slave2_stock_id, stock_get_threshold(slave2_stock_id)+1); // For Debugging
             end

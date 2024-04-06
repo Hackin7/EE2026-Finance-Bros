@@ -47,7 +47,7 @@ module module_master #(
     output uart2_rx_clear,
     // OLED
     input [12:0] oled_pixel_index, output reg [15:0] oled_pixel_data,
-    output reg [15:0] oled2_pixel_data,
+    output [15:0] oled2_pixel_data,
     // OLED Text Module
     output [8*STR_LEN*7-1:0] text_lines, output [15:0] text_colour,
     
@@ -251,9 +251,9 @@ module module_master #(
     
     /* --- Data Change ------------------------------------------------------------- */
     parameter TIME = 3;
-    reg [8*TIME-1:0] line_appl = 'ha9_a9_a9;
-    reg [8*TIME-1:0] line_goog  = 'ha0_a0_a0;
-    reg [8*TIME-1:0] line_baba  = 'h90_90_90;
+    reg [8*TIME-1:0] line_appl = 'ha9_a8_a9;
+    reg [8*TIME-1:0] line_goog  = 'ha0_a1_a0;
+    reg [8*TIME-1:0] line_baba  = 'h9f_a0_9f;
 
     always @ (posedge clk) begin
         if (line_appl[7:0] != stock_get_price(0) |
@@ -388,6 +388,7 @@ module module_master #(
         end
     end endtask
 
+    assign oled2_pixel_data = graph_pixel_data;
     always @ (posedge clk) begin
         case (state)
         MENU_STATE: begin 
