@@ -126,10 +126,10 @@ module graphs(
                                         (y_point8 * scale - (slope2 * x_point2))); //was intercept6
                                         
     always @(posedge clk) begin
-        if (mouse_right_click) begin
-            zoom_level <= zoom_level == 3 ? zoom_level : zoom_level + 1;
-        end else if (mouse_left_click) begin
-            zoom_level <= zoom_level == 1 ? zoom_level : zoom_level - 1;
+        if (mouse_right_click && zoom_level == 1) begin
+            zoom_level <= 2;
+        end else if (mouse_left_click && zoom_level == 2) begin
+            zoom_level <= 1;
         end
     end
   

@@ -311,6 +311,13 @@ module module_master #(
     
     wire [15:0] menu_text_colour;
     wire [8*15*7-1:0] menu_text_lines;
+    wire [8*15*7-1:0] graph_text_lines = {"P              ",
+                                          "               ",
+                                          "               ",
+                                          "               ",
+                                          "               ",
+                                          "               ",
+                                          "              T"};
 
     master_menu menu(
         .clk(clk), .reset(master_menu_reset),
@@ -319,7 +326,7 @@ module module_master #(
         .button_state(master_button_state)
     );
         
-    assign text_lines = state == GRAPH_STATE ?      "" : 
+    assign text_lines = state == GRAPH_STATE ?      graph_text_lines : 
                        (state == MENU_STATE ?       menu_text_lines : 
                        (state == ENCRYPTED_STATE ?  encrypted_text_lines :
                                                     table_text_lines));
