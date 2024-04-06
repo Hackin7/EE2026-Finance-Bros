@@ -41,7 +41,7 @@ module trade_packet_parser#(
     parameter DBITS=8, UART_FRAME_SIZE=8
 )(
     input  [UART_FRAME_SIZE*DBITS-1:0] uart_rx,
-    input encrypted,
+    input decrypted,
     input [7:0] seed,
     output [7:0] type, // Not working properly
     output [7:0] account_id,
@@ -68,13 +68,13 @@ module trade_packet_parser#(
         
     wire [7:0] char_first = uart_rx[63:56];
     wire [7:0] char_last = uart_rx[7:0];
-    wire [7:0] char_type = encrypted ? packet_decrypted[55:48] : uart_rx[55:48];
+    wire [7:0] char_type = decrypted ? packet_decrypted[55:48] : uart_rx[55:48];
     
     assign type = (char_first == "[" && char_last == "]") ? char_type : TYPE_INVALID;
-    assign account_id = encrypted ? packet_decrypted[DBITS*6-1:DBITS*5] : uart_rx[DBITS*6-1:DBITS*5];
-    assign stock_id =   encrypted ? packet_decrypted[DBITS*5-1:DBITS*4] : uart_rx[DBITS*5-1:DBITS*4];
-    assign qty =        encrypted ? packet_decrypted[DBITS*4-1:DBITS*3] : uart_rx[DBITS*4-1:DBITS*3];
-    assign price =      encrypted ? packet_decrypted[DBITS*3-1:DBITS*2] : uart_rx[DBITS*3-1:DBITS*2];
-    assign balance =    encrypted ? packet_decrypted[DBITS*6-1:DBITS*2] : uart_rx[DBITS*6-1:DBITS*2];
+    assign account_id = decrypted ? packet_decrypted[DBITS*6-1:DBITS*5] : uart_rx[DBITS*6-1:DBITS*5];
+    assign stock_id =   decrypted ? packet_decrypted[DBITS*5-1:DBITS*4] : uart_rx[DBITS*5-1:DBITS*4];
+    assign qty =        decrypted ? packet_decrypted[DBITS*4-1:DBITS*3] : uart_rx[DBITS*4-1:DBITS*3];
+    assign price =      decrypted ? packet_decrypted[DBITS*3-1:DBITS*2] : uart_rx[DBITS*3-1:DBITS*2];
+    assign balance =    decrypted ? packet_decrypted[DBITS*6-1:DBITS*2] : uart_rx[DBITS*6-1:DBITS*2];
 endmodule
 

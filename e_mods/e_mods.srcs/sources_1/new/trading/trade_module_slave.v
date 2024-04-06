@@ -124,7 +124,8 @@ module trade_module_slave #(
             .DBITS(DBITS), 
             .UART_FRAME_SIZE(UART_FRAME_SIZE)
         ) parser (
-        .encrypted(decrypted),
+        .seed(tx_account_id),
+        .decrypted(decrypted),
         .uart_rx(uart_rx), 
         .type(packet_type), 
         .account_id(packet_account_id), 

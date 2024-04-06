@@ -212,7 +212,7 @@ module trade_module_master #(
             .UART_FRAME_SIZE(UART_FRAME_SIZE)
         ) parser (
         .seed(0),
-        .encrypted(decrypted0),
+        .decrypted(decrypted0),
         .uart_rx(uart_rx), 
         .type(slave_type), 
         .account_id(slave_account_id), 
@@ -231,7 +231,7 @@ module trade_module_master #(
             .DBITS(DBITS), 
             .UART_FRAME_SIZE(UART_FRAME_SIZE)
         ) parser1 (
-        .encrypted(decrypted1),
+        .decrypted(decrypted1),
         .seed(1),
         .uart_rx(uart1_rx), 
         .type(slave1_type), 
@@ -250,7 +250,7 @@ module trade_module_master #(
             .DBITS(DBITS), 
             .UART_FRAME_SIZE(UART_FRAME_SIZE)
         ) parser2 (
-        .encrypted(decrypted2),
+        .decrypted(decrypted2),
         .seed(2),
         .uart_rx(uart2_rx), 
         .type(slave2_type), 
