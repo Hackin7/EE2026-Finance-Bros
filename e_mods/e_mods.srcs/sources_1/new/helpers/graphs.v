@@ -38,31 +38,31 @@ module graphs(
             oled_pixel_data = ((y == 56 | x == 10) ? constant.GRAY : 0);
         end
         else if (zoom_level == 2 && cursor_x < 24 && cursor_y < 16) begin
-           x <= ((oled_pixel_index % 96) / 2); 
+           x <= ((oled_pixel_index % 96) / 2); //top left corner
            y <= ((oled_pixel_index / 96) / 2); 
         end else if (zoom_level == 2 && cursor_x < 24 && cursor_y >= 16 && cursor_y < 48) begin 
-           x <= ((oled_pixel_index % 96) / 2); 
+           x <= ((oled_pixel_index % 96) / 2); //middle left corner
            y <= ((oled_pixel_index / 96) / 2) + 16; 
         end else if (zoom_level == 2 && cursor_x < 24 && cursor_y >= 48) begin  
-           x <= ((oled_pixel_index % 96) / 2); 
+           x <= ((oled_pixel_index % 96) / 2); //bottom left corner
            y <= ((oled_pixel_index / 96) / 2) + 32; 
         end else if (zoom_level == 2 && cursor_x >= 24 && cursor_x < 72 && cursor_y < 16) begin  
-           x <= ((oled_pixel_index % 96) / 2) + 24; 
+           x <= ((oled_pixel_index % 96) / 2) + 24; //top middle
            y <= ((oled_pixel_index / 96) / 2);
         end else if (zoom_level == 2 && cursor_x >= 72 && cursor_y < 16) begin 
-           x <= ((oled_pixel_index % 96) / 2) + 48; 
+           x <= ((oled_pixel_index % 96) / 2) + 48; //top right
            y <= ((oled_pixel_index / 96) / 2);
         end else if (zoom_level == 2 && cursor_x >= 24 && cursor_x < 72 && cursor_y >= 16 && cursor_y < 48) begin 
-           x <= ((oled_pixel_index % 96) / 2) + 24; 
+           x <= ((oled_pixel_index % 96) / 2) + 24; //centre block
            y <= ((oled_pixel_index / 96) / 2) + 16;
         end else if (zoom_level == 2 && cursor_x >= 24 && cursor_x < 72 && cursor_y >= 48) begin 
-           x <= ((oled_pixel_index % 96) / 2) + 24; 
+           x <= ((oled_pixel_index % 96) / 2) + 24; //bottom middle
            y <= ((oled_pixel_index / 96) / 2) + 32; 
         end else if (zoom_level == 2 && cursor_x >= 72 && cursor_y >= 16 && cursor_y < 48) begin   
-           x <= ((oled_pixel_index % 96) / 2) + 48; 
+           x <= ((oled_pixel_index % 96) / 2) + 48; //middle right
            y <= ((oled_pixel_index / 96) / 2) + 16;             
         end else if (zoom_level == 2 && cursor_x >= 72 && cursor_y >= 48) begin 
-           x <= ((oled_pixel_index % 96) / 2) + 48; 
+           x <= ((oled_pixel_index % 96) / 2) + 48; //bottom right
            y <= ((oled_pixel_index / 96) / 2) + 32;
         end
       

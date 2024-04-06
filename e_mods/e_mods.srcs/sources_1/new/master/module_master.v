@@ -92,8 +92,8 @@ module module_master #(
     parameter BITWIDTH_ACCT = BITWIDTH_ACCT_BALANCE + BITWIDTH_ACCT_STOCKS*NO_STOCKS;
     wire [NO_ACCOUNTS * BITWIDTH_ACCT - 1 : 0] accounts;
     
-    wire encrypted0 = sw[5], encrypted1 = sw[6], encrypted2 = sw[7];
-    wire decrypted0 = sw[8], decrypted1 = sw[9], decrypted2 = sw[10];
+    wire encrypted0 = sw[4], encrypted1 = sw[5], encrypted2 = sw[6];
+    wire decrypted0 = sw[7], decrypted1 = sw[8], decrypted2 = sw[9];
     wire [63:0] prev_uart_rx;
 
     trade_module_master 
