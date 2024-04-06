@@ -192,9 +192,8 @@ module module_master #(
     wire [8*(4)-1:0] num_string1, num_string2, num_string3, num_string4;
     text_num_val_mapping text_num1_module(
         state == USER_TABLE_STATE  ? (
-            ypos < 10 ? user_id
-            : account_get_balance(user_id)
-        ):
+            ypos < 10 ? user_id : 
+                        account_get_balance(user_id)):
         state == STOCK_TABLE_STATE ? stock_get_price(0) : 0, 
         num_string1
     );
@@ -217,34 +216,23 @@ module module_master #(
         num_string4
     );
 
-    wire [8*15*7-1:0] table_text_lines;
-    wire [8*15-1:0] line1 = (
-        state == USER_TABLE_STATE  ? {"USER       ", num_string1} :
-        state == STOCK_TABLE_STATE ? "PRICES         " : 
-        ""
-    );
-    wire [8*15-1:0] line2 = (
-        state == USER_TABLE_STATE  ? {"BALANCE    ", num_string1}: 
-        state == STOCK_TABLE_STATE ? {"AAPL       ", num_string1}: 
-        "               "
-    );
-    
-    wire [8*15-1:0] line3 = (
-        state == USER_TABLE_STATE  ? {"AAPL QTY   ", num_string2} : 
-        state == STOCK_TABLE_STATE ? {"GOOG       ", num_string2} : 
-        "               "
-    );
-    
-    wire [8*15-1:0] line4 = (
-        state == USER_TABLE_STATE  ? {"GOOG QTY   ", num_string3}: 
-        state == STOCK_TABLE_STATE ? {"BABA       ", num_string3}: 
-        "               "
-    );
-    wire [8*15-1:0] line5 = {
-        state == USER_TABLE_STATE  ? {"BABA QTY   ", num_string4}: 
-        state == STOCK_TABLE_STATE ? "       ": 
-        "               "
-    };
+    wire [8*15*7-1:0] table_text_lines = (state == USER_TABLE_STATE  ? 
+                                         {"USER       ", num_string1, 
+                                          "BALANCE    ", num_string1,
+                                          "AAPL QTY   ", num_string2,
+                                          "GOOG QTY   ", num_string3,
+                                          "BABA QTY   ", num_string4,
+                                          "               ",
+                                          "               "} :
+                                          state == STOCK_TABLE_STATE ? 
+                                         {"PRICES         ",
+                                          "AAPL       ", num_string1,
+                                          "GOOG       ", num_string2,
+                                          "BABA       ", num_string3,
+                                          "               ",
+                                          "               ",
+                                          "               "} : 
+                                          "");
 
     wire [8*12-1:0] mapped_uart, mapped_decrypt;
     wire [63:0] decrypted_packet;
@@ -332,10 +320,11 @@ module module_master #(
         .button_state(master_button_state)
     );
         
-    assign text_lines = state == GRAPH_STATE ? "" : (state == MENU_STATE ? menu_text_lines : 
-                       (state == ENCRYPTED_STATE ? encrypted_text_lines :
-                       {line1, line2, line3, line4, line5,"               ", "               "}));
-    assign text_colour = state == MENU_STATE ? menu_text_colour : 
+    assign text_lines = state == GRAPH_STATE ?      "" : 
+                       (state == MENU_STATE ?       menu_text_lines : 
+                       (state == ENCRYPTED_STATE ?  encrypted_text_lines :
+                                                    table_text_lines));
+    assign text_colour = state == MENU_STATE ?      menu_text_colour : 
                         (state == ENCRYPTED_STATE ? encrypted_text_colour :
                         (xpos >= 49 ? constant.CYAN : constant.WHITE));
      

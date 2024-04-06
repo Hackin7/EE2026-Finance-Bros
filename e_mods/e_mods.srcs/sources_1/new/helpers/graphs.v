@@ -29,12 +29,14 @@ module graphs(
     parameter scale = 128;
   
     always @(*) begin
-        oled_pixel_data <= 16'h0000;
+        oled_pixel_data <= constant.BLACK; //sets black background
+        
+        // Drawing axes
         if (zoom_level == 1) begin
             x <= oled_pixel_index % 96; 
             y <= oled_pixel_index / 96;
-        end
-        else if (zoom_level == 2 && cursor_x < 24 && cursor_y < 16) begin
+            oled_pixel_data <= (x == 10 || y == 56) ? constant.WHITE : cosntant.BLACK;
+        end else if (zoom_level == 2 && cursor_x < 24 && cursor_y < 16) begin
            x <= ((oled_pixel_index % 96) / 2); 
            y <= ((oled_pixel_index / 96) / 2); 
         end else if (zoom_level == 2 && cursor_x < 24 && cursor_y >= 16 && cursor_y < 48) begin 
