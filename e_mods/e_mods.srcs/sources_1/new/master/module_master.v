@@ -118,7 +118,6 @@ module module_master #(
         .uart2_rx_clear(uart2_rx_clear),
         
         // Debugging Ports
-        .sw(sw), .led(led), 
         .debug_accounts(accounts),
         .debug_stocks(stocks)
     );
@@ -285,8 +284,8 @@ module module_master #(
         //.sw(sw), .led(led), .seg(seg), .dp(dp), .an(an),
         .oled_pixel_index(oled_pixel_index), .oled_pixel_data(graph_pixel_data),
         // Line 1
-        .x_point1(35), .y_point1(normalize_y(line_green[23:16])), 
-        .x_point2(60), .y_point2(normalize_y(line_green[15:8 ])), 
+        .x_point1(15), .y_point1(normalize_y(line_green[23:16])), 
+        .x_point2(50), .y_point2(normalize_y(line_green[15:8 ])), 
         .x_point3(85), .y_point3(normalize_y(line_green[7:0])),
         // Line 1
         //.x_point4(35), 
@@ -396,11 +395,11 @@ module module_master #(
         state_menu_handle();
         end
         USER_TABLE_STATE: begin 
-        oled_pixel_data <= 0;
+        oled_pixel_data <= ((ypos == 7) ? constant.GRAY : 0);
         btnC_handle();
         end
         STOCK_TABLE_STATE: begin 
-        oled_pixel_data <= 0;
+        oled_pixel_data <= ((ypos == 7) ? constant.GRAY : 0);
         btnC_handle();
         end 
         GRAPH_STATE: begin 

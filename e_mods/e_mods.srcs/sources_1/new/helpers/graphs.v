@@ -35,8 +35,9 @@ module graphs(
         if (zoom_level == 1) begin
             x <= oled_pixel_index % 96; 
             y <= oled_pixel_index / 96;
-            oled_pixel_data <= (x == 10 || y == 56) ? constant.WHITE : cosntant.BLACK;
-        end else if (zoom_level == 2 && cursor_x < 24 && cursor_y < 16) begin
+            oled_pixel_data = ((y == 56 | x == 10) ? constant.GRAY : 0);
+        end
+        else if (zoom_level == 2 && cursor_x < 24 && cursor_y < 16) begin
            x <= ((oled_pixel_index % 96) / 2); 
            y <= ((oled_pixel_index / 96) / 2); 
         end else if (zoom_level == 2 && cursor_x < 24 && cursor_y >= 16 && cursor_y < 48) begin 

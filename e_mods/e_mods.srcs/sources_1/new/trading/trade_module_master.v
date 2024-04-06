@@ -34,9 +34,7 @@ module trade_module_master #(
     output [167:0] debug_accounts,
     output [95:0] debug_stocks,
     output [31:0] debug_admin_fees, 
-    output [31:0] debug_general,
-    // Control
-    input [15:0] sw, output [15:0] led
+    output [31:0] debug_general
 );
 
     parameter MOVEMENT_THRSHOLD = 2;//0;
@@ -716,24 +714,6 @@ module trade_module_master #(
     assign debug_accounts = accounts;
     assign debug_stocks = stocks;
     assign debug_admin_fees = admin_fees;
-    assign led[15:0] = (
-        sw[15:10] == 0 ? {slave_type} : ( // Buggy
-        sw[15:10] == 1 ? {slave_account_id} : (   
-        sw[15:10] == 2 ? {slave_stock_id} : (
-        sw[15:10] == 3 ? {slave_qty} : (
-        sw[15:10] == 4 ? uart1_tx_trigger : (
-        sw[15:10] == 5 ? uart1_tx[7:0] : (
-        sw[15:10] == 6 ? uart1_tx[15:8] : (
-        sw[15:10] == 7 ? uart1_tx[23:16] : (
-        sw[15:10] == 8 ? uart1_tx[31:24] : (
-        sw[15:10] == 9 ? uart1_tx[39:32] : (
-        sw[15:10] == 10 ? uart1_tx[47:40] : (
-        sw[15:10] == 11 ? uart1_tx[55:48] : (
-        sw[15:10] == 12 ? uart1_tx[63:56] : (
-        sw[15:10] == 13 ? 'b0 : (
-            ~'b0
-        ))))))))))))))
-    );
 endmodule
 
 
