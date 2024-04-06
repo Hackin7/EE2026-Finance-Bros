@@ -119,11 +119,13 @@ module trade_module_slave #(
     wire [7:0] packet_stock_id;
     wire [7:0] packet_qty;
     wire [7:0] packet_price;
+    wire [2:0] seed = 0; //account_id[2:0];
     trade_packet_parser 
         #(
             .DBITS(DBITS), 
             .UART_FRAME_SIZE(UART_FRAME_SIZE)
         ) parser (
+        .seed(seed),
         .encrypted(decrypted),
         .uart_rx(uart_rx), 
         .type(packet_type), 

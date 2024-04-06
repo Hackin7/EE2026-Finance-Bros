@@ -1,22 +1,7 @@
 `timescale 1ns /1ps
-//////////////////////////////////////////////////////////////////////////////////////////
-// Reference book:
-// "FPGA Prototyping by Verilog Examples"
-// "Xilinx Spartan-3 Version"
-// Dr. Pong P. Chu
-// Wiley
-//
-// Adapted for Artix-7
-// David J. Marion
-//
-// Parameterized FIFO Unit for the UART System
-// 
-// Comments:
-// - Many of the variable names have been changed for clarity
-//////////////////////////////////////////////////////////////////////////////////////////
+// Significantly modified from https://github.com/FPGADude/Digital-Design/blob/main/FPGA%20Projects/UART/fifo.v
 
-// Modified to basically become a shift register
- module fifo_shift
+module fifo_shift
 	#(
 	   parameter	DATA_SIZE  = 8,	       // number of bits in a data word
 				    ADDR_SPACE = 4	           // number of addresses

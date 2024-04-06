@@ -245,6 +245,7 @@ module module_master #(
         "               "
     };
 
+
     wire [8*12-1:0] mapped_uart, mapped_decrypt;
     wire [63:0] decrypted_packet;
     encryption decryptor(.action(1),
@@ -280,7 +281,7 @@ module module_master #(
     
     function [7:0] normalize_y(input [7:0] val);
     begin
-        normalize_y = (val - 155) * 2;
+        normalize_y = 54 - ((val - 155) * 2);
     end
     endfunction
 
@@ -319,10 +320,10 @@ module module_master #(
     );
 
     /* --- Clock stuff ------------------------------------------------------ */
-    wire clk_1000hz;
-    clk_counter #(500_000, 500_000, 32) clk1000hz (clk, clk_1000hz);
+    wire clk_graph_multiplex;
+    clk_counter #(1666666, 1666666, 32) clkgraph (clk, clk_graph_multiplex);
     reg [2:0] cycle_graph_stock = 0;
-    always @ (posedge clk_1000hz) begin
+    always @ (posedge clk_graph_multiplex) begin
         cycle_graph_stock <= cycle_graph_stock == 2 ? 0 : cycle_graph_stock + 1;
     end
     /* --- OLED ------------------------------------------------------------- */
@@ -339,10 +340,18 @@ module module_master #(
         .button_state(master_button_state)
     );
         
-    assign text_lines = state == GRAPH_STATE ? "" : (state == MENU_STATE ? menu_text_lines : 
+    wire [8*15*7-1:0] graph_text_lines = {"P              ",
+                                          "               ",
+                                          "               ",
+                                          "               ",
+                                          "               ",
+                                          "               ",
+                                          "              T"};
+    assign text_lines = state == GRAPH_STATE ? graph_text_lines : (state == MENU_STATE ? menu_text_lines : 
                        (state == ENCRYPTED_STATE ? encrypted_text_lines :
                        {line1, line2, line3, line4, line5,"               ", "               "}));
-    assign text_colour = state == MENU_STATE ? menu_text_colour : 
+    assign text_colour = state == GRAPH_STATE ? constant.WHITE : 
+                        state == MENU_STATE ? menu_text_colour : 
                         (state == ENCRYPTED_STATE ? encrypted_text_colour :
                         (xpos >= 49 ? constant.CYAN : constant.WHITE));
      
@@ -397,7 +406,7 @@ module module_master #(
     task graph_handle(); begin
         if (prev_btnC == 1 && btnC == 0) begin
             state <= MENU_STATE;
-            current_graph_stock <= 0;
+            //current_graph_stock <= 0;
         end
         if (prev_btnL == 1 && btnL == 0) begin
             current_graph_stock <= current_graph_stock == 0 ? 3 : current_graph_stock - 1;
