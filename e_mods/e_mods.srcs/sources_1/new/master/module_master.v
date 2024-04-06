@@ -292,7 +292,8 @@ module module_master #(
     reg [2:0] current_graph_stock = 0;
     graphs graph_module(
         .reset(0), .clk(clk), 
-        .btnC(btnC), .btnU(btnU), .btnL(btnL), .btnR(btnR), .btnD(btnD), .stock_id(current_graph_stock),
+        .btnC(btnC), .btnU(btnU), .btnL(btnL), .btnR(btnR), .btnD(btnD), 
+        .stock_id(current_graph_stock == 3 ? cycle_graph_stock : current_graph_stock),
         //.sw(sw), .led(led), .seg(seg), .dp(dp), .an(an),
         .oled_pixel_index(oled_pixel_index), .oled_pixel_data(graph_pixel_data),
         // Line 1
@@ -317,6 +318,13 @@ module module_master #(
         .mouse_left_click(mouse_left_click), .mouse_right_click(mouse_right_click)
     );
 
+    /* --- Clock stuff ------------------------------------------------------ */
+    wire clk_1000hz;
+    clk_counter #(500_000, 500_000, 32) clk1000hz (clk, clk_1000hz);
+    reg [2:0] cycle_graph_stock = 0;
+    always @ (posedge clk_1000hz) begin
+        cycle_graph_stock <= cycle_graph_stock == 2 ? 0 : cycle_graph_stock + 1;
+    end
     /* --- OLED ------------------------------------------------------------- */
     reg master_menu_reset;
     reg [2:0] master_button_state;
@@ -392,10 +400,10 @@ module module_master #(
             current_graph_stock <= 0;
         end
         if (prev_btnL == 1 && btnL == 0) begin
-            current_graph_stock <= current_graph_stock == 0 ? 2 : current_graph_stock - 1;
+            current_graph_stock <= current_graph_stock == 0 ? 3 : current_graph_stock - 1;
         end
         if (prev_btnR == 1 && btnR == 0) begin
-            current_graph_stock <= current_graph_stock == 2 ? 0 : current_graph_stock + 1;
+            current_graph_stock <= current_graph_stock == 3 ? 0 : current_graph_stock + 1;
         end
     end endtask
 

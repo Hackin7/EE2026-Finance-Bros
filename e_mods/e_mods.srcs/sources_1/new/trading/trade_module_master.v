@@ -684,12 +684,12 @@ module trade_module_master #(
         if (threshold <= -MOVEMENT_THRSHOLD) begin
             // update price & threshold
             stocks <= (
-                stock_update_price(stock_id, stock_get_price(stock_id)-1, 
+                stock_update_price(stock_id, stock_get_price(stock_id)-((-threshold)/(MOVEMENT_THRSHOLD)), 
                 stock_update_threshold(stock_id, 0, 
             stocks)));
         end else if (threshold >= MOVEMENT_THRSHOLD) begin
             stocks <= (
-                stock_update_price(stock_id, stock_get_price(stock_id)+1, 
+                stock_update_price(stock_id, stock_get_price(stock_id) + threshold/MOVEMENT_THRSHOLD, 
                 stock_update_threshold(stock_id, 0, 
             stocks)));
         end else begin

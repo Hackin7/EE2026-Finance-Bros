@@ -106,7 +106,7 @@ module graphs(
          cursor_y <= mouse_ypos[11:3]; 
         
         if (x == cursor_x && y == cursor_y) begin
-            oled_pixel_data <= 16'hFFFF; // White color for cursor
+            oled_pixel_data <= constant.PINK; // White color for cursor
         end
     end
          
@@ -122,12 +122,13 @@ module graphs(
     assign intercept2 = stock_id == 0 ? (y_point2 * scale - (slope2 * x_point2)) : (
                         stock_id == 1 ? (y_point5 * scale - (slope2 * x_point2)) : //was intercept4
                                         (y_point8 * scale - (slope2 * x_point2))); //was intercept6
-                                        
+                  
     always @(posedge clk) begin
-        if (mouse_right_click) begin
-            zoom_level <= zoom_level == 3 ? zoom_level : zoom_level + 1;
-        end else if (mouse_left_click) begin
-            zoom_level <= zoom_level == 1 ? zoom_level : zoom_level - 1;
+        if (mouse_right_click && zoom_level == 1) begin
+            zoom_level <= 2;
+        end
+        else if (mouse_left_click && zoom_level == 2) begin
+            zoom_level <= 1;
         end
     end
   
