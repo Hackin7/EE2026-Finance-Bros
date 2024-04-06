@@ -51,7 +51,7 @@ module menuCode#(
     assign an = control_an;
     //constants library
     constants constant();
-    reg [3:0] state = 4'd6;
+    reg [3:0] state = 4'd1;
     parameter STATE_INPUT_SLAVE_ID = 6;
     parameter STATE_MENU = 1;
     parameter STATE_ADD_TRADE = 2;
@@ -408,6 +408,8 @@ module menuCode#(
         end else if (state == STATE_TABLE_VIEW) begin
             state_table_handle();
         end else if (state == STATE_CURRENT_TRADE || state == STATE_VIEW_ENCRYPTED) begin
+            state_current_trade_handle();
+        end else begin
             state_current_trade_handle();
         end
         button_control();
