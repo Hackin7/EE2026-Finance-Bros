@@ -36,10 +36,10 @@ module slaveMenuPage(
     
     constants constant();
     assign text_colour = (
-        menu_button_state == 0 && (ypos < 10) ? constant.CYAN : 
-        menu_button_state == 1 && (10 <= ypos && ypos < 20) ? constant.CYAN : 
-        menu_button_state == 2 && (20 <= ypos && ypos < 30) ? constant.CYAN : 
-        menu_button_state == 3 && (30 <= ypos && ypos < 40) ? constant.CYAN : 
+        menu_button_state == 0 && (ypos < 10) ? constant.RED : 
+        menu_button_state == 1 && (10 <= ypos && ypos < 20) ? constant.YELLOW : 
+        menu_button_state == 2 && (20 <= ypos && ypos < 30) ? constant.GREEN : 
+        menu_button_state == 3 && (30 <= ypos && ypos < 40) ? constant.BLUE : 
         menu_button_state == 4 && (40 <= ypos && ypos < 50) ? constant.CYAN : 
         constant.WHITE
     );

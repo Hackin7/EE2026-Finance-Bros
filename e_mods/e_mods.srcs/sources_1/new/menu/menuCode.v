@@ -418,38 +418,38 @@ module menuCode#(
         if (trade_module_send_success > 0) begin
             text_colour = 0;
             text_lines  = 0;
-            pixel_data <= constant.GREEN;   
-            control_seg <= ~7'b0;
-            control_dp <= 1;
-            control_an <= ~4'b0;
+            pixel_data = constant.GREEN;   
+            control_seg = ~7'b0;
+            control_dp = 1;
+            control_an = ~4'b0;
         end else if (state == STATE_INPUT_SLAVE_ID) begin
             text_colour = slave_id_text_colour;
             text_lines  = slave_id_text_lines;
-            pixel_data <= input_id_pixel_data;
-            control_seg <= input_id_seg;
-            control_an <= input_id_an;
-            control_dp <= input_id_dp;
+            pixel_data = input_id_pixel_data;
+            control_seg = input_id_seg;
+            control_an = input_id_an;
+            control_dp = input_id_dp;
         end else if (state == STATE_MENU) begin
             text_colour = menu_text_colour;
             text_lines  = menu_text_lines;
-            pixel_data <= 0;
-            control_seg <= ~7'b0;
-            control_dp <= 1;
-            control_an <= ~4'b0;
+            pixel_data  = 0;
+            control_seg = ~7'b0;
+            control_dp = 1;
+            control_an = ~4'b0;
         end else if (state == STATE_ADD_TRADE) begin
             text_colour = add_trade_text_colour;
             text_lines  = add_trade_text_lines;
-            pixel_data <= 0; //pageOne_pixel_data;
-            control_seg <= pageOne_seg;
-            control_dp <= pageOne_dp;
-            control_an <= pageOne_an;
+            pixel_data = 0; //pageOne_pixel_data;
+            control_seg = pageOne_seg;
+            control_dp = pageOne_dp;
+            control_an = pageOne_an;
         end else if (state == STATE_FAIL_ADD_TRADE) begin
             text_colour = 0;
             text_lines  = 0;
-            pixel_data <= constant.RED;
-            control_seg <= ~7'b0;
-            control_dp <= 1;
-            control_an <= ~4'b0;
+            pixel_data = constant.RED;
+            control_seg = ~7'b0;
+            control_dp = 1;
+            control_an = ~4'b0;
         end else if (state == STATE_TABLE_VIEW) begin
             text_colour = table_view_text_colour;
             text_lines  = table_view_text_lines;
@@ -460,15 +460,17 @@ module menuCode#(
         end else if (state == STATE_CURRENT_TRADE) begin
             text_colour = current_trade_text_colour;
             text_lines  = current_trade_text_lines;
-            control_seg <= ~7'b0;
-            control_dp <= 1;
-            control_an <= ~4'b0;
+            pixel_data = 0;
+            control_seg = ~7'b0;
+            control_dp = 1;
+            control_an = ~4'b0;
         end else if (state == STATE_VIEW_ENCRYPTED) begin
             text_lines = encryption_text_lines;
             text_colour = constant.WHITE;
-            control_seg <= ~7'b0;
-            control_dp <= 1;
-            control_an <= ~4'b0;
+            pixel_data = 0;
+            control_seg = ~7'b0;
+            control_dp = 1;
+            control_an = ~4'b0;
         end
     end
 
