@@ -21,8 +21,8 @@
 
 
 module encryption(
-    input clk, reset, action,
-    input [2:0] seed,
+    input action,
+    input [7:0] seed,
     input [63:0] data_in,
     output [63:0] data_out
     );
@@ -31,7 +31,7 @@ module encryption(
     wire [47:0] combined;
     assign data_out = {data_in[63:56], combined, data_in[7:0]};
     integer i = 0;
-    reg [47:0] passkey [2:0];
+    wire [47:0] passkey [2:0];
     reg [2:0] temp; //for bitshift
     
     function [23:0] encrypter(
@@ -53,20 +53,22 @@ module encryption(
         input [55:0] passkey
         ); begin
         for (i = 0; i < 8; i = i + 1) begin
-            ciphertext = ciphertext ^ passkey[23:0];
+            ciphertext = ciphertext ^ passkey[23:0]; //XOR with right half
             temp = ciphertext[2:0];
-            ciphertext = ciphertext >> 2;
-            ciphertext = ciphertext ^ passkey[47:25];
+            ciphertext = ciphertext >> 3; //shift right
+            ciphertext[23:21] = temp;
+            ciphertext = ciphertext ^ passkey[47:24]; //XOR with left half
         end
         
         decrypter = ciphertext;
     end endfunction
+    
     assign combined = {left, right};
-    initial begin
-        passkey[0] = 48'b1100_0011_1010_0110_1001_0101_1100_0011_1010_0110_0011_1100;
-        passkey[1] = 48'b0000_1111_0101_1100_1010_0011_0000_1111_0101_1100_1111_0000;
-        passkey[2] = 48'b1101_0010_0100_1011_1110_0001_1101_0010_0100_1011_0010_1101;
-    end
+    
+
+    assign passkey[0] = 48'b1100_0011_1010_0110_1001_0101_1100_0011_1010_0110_0011_1100;
+    assign passkey[1] = 48'b0000_1111_0101_1100_1010_0011_0000_1111_0101_1100_1111_0000;
+    assign passkey[2] = 48'b1101_0010_0100_1011_1110_0001_1101_0010_0100_1011_0010_1101;
 
 
     

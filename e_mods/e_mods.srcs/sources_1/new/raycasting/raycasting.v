@@ -17,7 +17,7 @@ module raycasting # (
     // Control
     input reset, input clk,
     // LEDs, Switches, Buttons
-    input btnC, btnU, btnL, btnR, btnD, input [15:0] sw, output [15:0] led,
+    input btnC, btnU, btnL, btnR, btnD, 
     // 7 Segment Display
     output [6:0] seg, output dp, output [3:0] an,
     // OLED
@@ -153,21 +153,7 @@ module raycasting # (
     //wire signed [BW-1:0] raycast_x_delta = raycast_x < x ? (x - raycast_x) : (raycast_x - x);
     //wire signed [BW-1:0] raycast_y_delta = raycast_y < y ? (y - raycast_y) : (raycast_y - y);
     //wire [BW-1:0] dist_sq = (raycast_x_delta * raycast_x_delta) + (raycast_y_delta * raycast_y_delta);
-          
-    
-    
-    assign led = (
-        sw[0] ? raycast_x : 
-        sw[1] ? raycast_y : 
-        sw[2] ? angle[16:1] :  
-        sw[3] ? raycast_step : 
-        sw[4] ? cos_array[angle] : 
-        sw[5] ? {world_map[map_index], map_index} : 
-        sw[6] ? raycast_angle: 
-        sw[7] ? distance:
-        16'hffff
-    );
-    
+
     always @ (posedge clk) begin
         if (world_map[map_index] == 0) begin // && world_map_blue[map_index]==0) begin
             raycast_x <= raycast_x + (dx>>1);

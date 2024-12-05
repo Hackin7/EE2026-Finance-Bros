@@ -37,13 +37,14 @@ module master_menu(
         button_state == 0 && (ypos < 10) ? constant.RED : 
         button_state == 1 && (10 <= ypos && ypos < 20) ? constant.YELLOW : 
         button_state == 2 && (20 <= ypos && ypos < 30) ? constant.GREEN : 
+        button_state == 3 && (30 <= ypos && ypos < 40) ? constant.BLUE :
         constant.WHITE
     );
     assign text_lines = {
         "VIEW ALL USERS ",
         "VIEW ALL STOCKS",
         "VIEW ALL GRAPHS",
-        "               ", 
+        "VIEW ENCRYPTION", 
         "               ", 
         "               ", 
         "               "
